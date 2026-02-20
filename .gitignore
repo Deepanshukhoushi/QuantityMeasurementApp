@@ -1,1 +1,77 @@
-.metadata/ 
+############################
+# Maven
+############################
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+############################
+# Eclipse / STS
+############################
+.metadata/
+.settings/
+.project
+.classpath
+.factorypath
+.springBeans
+.sts4-cache/
+
+############################
+# IntelliJ (in case someone opens it there)
+############################
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+############################
+# VS Code
+############################
+.vscode/
+
+############################
+# Logs
+############################
+*.log
+
+############################
+# OS Files
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# Temporary Files
+############################
+*.tmp
+*.bak
+*.swp
+*~
+
+
+
+### VS Code ###
+. vscode/
+
+# Compiled class file
+*. class
+*. jar
+*. log
+
+# Other File Exclusions
+.DS_Store
+*. iml
+
+# Build Folders Exclusion
+.idea/
+target/
+bin
+out/
+build/
+dist/
