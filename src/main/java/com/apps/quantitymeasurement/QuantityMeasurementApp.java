@@ -5,37 +5,51 @@ import java.util.Scanner;
 public class QuantityMeasurementApp {
 
     public static void main(String[] args) {
-        Scanner input = new Scanner(System.in);
-        System.out.println("Enter first value(Yards): ");
-        double value1 = input.nextDouble();
 
-        System.out.println("Enter second value(Feet): ");
-        double value2 = input.nextDouble();
-        
-        QuantityLength q1 =
-                new QuantityLength(value1, LengthUnit.YARDS);
+        Scanner scanner = new Scanner(System.in);
 
-        QuantityLength q2 =
-                new QuantityLength(value2, LengthUnit.FEET);
+        try {
 
-        System.out.println("Input: " + q1 + " and " + q2);
-        System.out.println("Output: Equal (" + q1.equals(q2) + ")");
+            System.out.println("=== LENGTH CONVERSION ===");
 
-        System.out.println();
-        
-        System.out.println("Enter first value(CM): ");
-        double value3 = input.nextDouble();
-        System.out.println("Enter first value(INCH): ");
-        double value4 = input.nextDouble();
-        
-        QuantityLength q3 =
-                new QuantityLength(value3, LengthUnit.CENTIMETERS);
+            System.out.print("Enter value: ");
+            double value = scanner.nextDouble();
 
-        QuantityLength q4 =
-                new QuantityLength(value4, LengthUnit.INCH);
+            System.out.print("Enter source unit (FEET, INCHES, YARDS, CENTIMETERS): ");
+            LengthUnit source = LengthUnit.valueOf(scanner.next().toUpperCase());
 
-        System.out.println("Input: " + q3 + " and " + q4);
-        System.out.println("Output: Equal (" + q3.equals(q4) + ")");
-        input.close();
+            System.out.print("Enter target unit (FEET, INCHES, YARDS, CENTIMETERS): ");
+            LengthUnit target = LengthUnit.valueOf(scanner.next().toUpperCase());
+
+            double result = QuantityLength.convert(value, source, target);
+
+            System.out.println("Result: " + result + " " + target);
+
+            System.out.println("\n=== LENGTH EQUALITY CHECK ===");
+
+            System.out.print("Enter first value: ");
+            double v1 = scanner.nextDouble();
+
+            System.out.print("Enter first unit: ");
+            LengthUnit u1 = LengthUnit.valueOf(scanner.next().toUpperCase());
+
+            System.out.print("Enter second value: ");
+            double v2 = scanner.nextDouble();
+
+            System.out.print("Enter second unit: ");
+            LengthUnit u2 = LengthUnit.valueOf(scanner.next().toUpperCase());
+
+            QuantityLength q1 = new QuantityLength(v1, u1);
+            QuantityLength q2 = new QuantityLength(v2, u2);
+
+            System.out.println("Are they equal? " + q1.equals(q2));
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid input: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Unexpected error occurred.");
+        } finally {
+            scanner.close();
+        }
     }
 }
