@@ -11,6 +11,8 @@ public final class QuantityLength {
 
     private final double value;
     private final LengthUnit unit;
+    
+    
 
     public QuantityLength(double value, LengthUnit unit) {
 
@@ -18,6 +20,13 @@ public final class QuantityLength {
 
         this.value = value;
         this.unit = unit;
+    }
+    public double getValue() {
+        return value;
+    }
+
+    public LengthUnit getUnit() {
+        return unit;
     }
 
     private void validate(double value, LengthUnit unit) {
@@ -27,6 +36,23 @@ public final class QuantityLength {
         if (unit == null) {
             throw new IllegalArgumentException("Unit cannot be null.");
         }
+    }
+    
+    /**
+     * Adds another QuantityLength to this one.
+     * Result is returned in the unit of this object.
+     */
+    public QuantityLength add(QuantityLength other) {
+
+        if (other == null) {
+            throw new IllegalArgumentException("Second operand cannot be null.");
+        }
+
+        double sumInFeet = this.toBaseUnit() + other.toBaseUnit();
+
+        double resultValue = this.unit.fromFeet(sumInFeet);
+
+        return new QuantityLength(resultValue, this.unit);
     }
 
     private double toBaseUnit() {
