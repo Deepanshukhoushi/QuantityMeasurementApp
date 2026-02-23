@@ -36,30 +36,34 @@ public final class QuantityLength {
     }
 
     private double toBaseUnit() {
-        return unit.toFeet(value);
+        return unit.convertToBaseUnit(value);
     }
 
     // =====================================================
-    // UC6 - Addition (Result in first operand's unit)
+    // Conversion (UC5)
+    // =====================================================
+
+    public QuantityLength convertTo(LengthUnit targetUnit) {
+
+        if (targetUnit == null) {
+            throw new IllegalArgumentException("Target unit cannot be null.");
+        }
+
+        double baseValue = unit.convertToBaseUnit(value);
+        double converted = targetUnit.convertFromBaseUnit(baseValue);
+
+        return new QuantityLength(converted, targetUnit);
+    }
+
+    // =====================================================
+    // Addition (UC6 + UC7)
     // =====================================================
 
     public QuantityLength add(QuantityLength other) {
-        return addInternal(other, this.unit);
+        return add(other, this.unit);
     }
-
-    // =====================================================
-    // UC7 - Addition with Explicit Target Unit
-    // =====================================================
 
     public QuantityLength add(QuantityLength other, LengthUnit targetUnit) {
-        return addInternal(other, targetUnit);
-    }
-
-    // =====================================================
-    // Private Utility Method (DRY)
-    // =====================================================
-
-    private QuantityLength addInternal(QuantityLength other, LengthUnit targetUnit) {
 
         if (other == null) {
             throw new IllegalArgumentException("Second operand cannot be null.");
@@ -69,40 +73,14 @@ public final class QuantityLength {
             throw new IllegalArgumentException("Target unit cannot be null.");
         }
 
-        double sumInFeet = this.toBaseUnit() + other.toBaseUnit();
+        double sumBase =
+                this.unit.convertToBaseUnit(this.value) +
+                other.unit.convertToBaseUnit(other.value);
 
-        double resultValue = targetUnit.fromFeet(sumInFeet);
+        double result =
+                targetUnit.convertFromBaseUnit(sumBase);
 
-        return new QuantityLength(resultValue, targetUnit);
-    }
-
-    // =====================================================
-    // Conversion API (UC5)
-    // =====================================================
-
-    public QuantityLength convertTo(LengthUnit targetUnit) {
-        double convertedValue = convert(this.value, this.unit, targetUnit);
-        return new QuantityLength(convertedValue, targetUnit);
-    }
-
-    public static double convert(double value,
-                                 LengthUnit source,
-                                 LengthUnit target) {
-
-        if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException("Invalid numeric value.");
-        }
-
-        if (source == null || target == null) {
-            throw new IllegalArgumentException("Units cannot be null.");
-        }
-
-        if (source == target) {
-            return value;
-        }
-
-        double valueInFeet = source.toFeet(value);
-        return target.fromFeet(valueInFeet);
+        return new QuantityLength(result, targetUnit);
     }
 
     // =====================================================
