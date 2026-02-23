@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.apps.quantitymeasurement.LengthUnit.*;
 
-class QuantityLengthUC8Test {
+class QuantityLengthTest {
 
     private static final double EPSILON = 1e-6;
 

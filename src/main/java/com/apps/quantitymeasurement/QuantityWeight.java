@@ -2,14 +2,14 @@ package com.apps.quantitymeasurement;
 
 import java.util.Objects;
 
-public final class QuantityLength {
+public final class QuantityWeight {
 
-    private static final double EPSILON = 1e-6;
+	private static final double EPSILON = 1e-4;
 
     private final double value;
-    private final LengthUnit unit;
+    private final WeightUnit unit;
 
-    public QuantityLength(double value, LengthUnit unit) {
+    public QuantityWeight(double value, WeightUnit unit) {
         validate(value, unit);
         this.value = value;
         this.unit = unit;
@@ -19,11 +19,11 @@ public final class QuantityLength {
         return value;
     }
 
-    public LengthUnit getUnit() {
+    public WeightUnit getUnit() {
         return unit;
     }
 
-    private void validate(double value, LengthUnit unit) {
+    private void validate(double value, WeightUnit unit) {
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException("Value must be finite.");
         }
@@ -36,11 +36,8 @@ public final class QuantityLength {
         return unit.convertToBaseUnit(value);
     }
 
-    // =====================================================
-    // Conversion (UC5)
-    // =====================================================
 
-    public QuantityLength convertTo(LengthUnit targetUnit) {
+    public QuantityWeight convertTo(WeightUnit targetUnit) {
 
         if (targetUnit == null) {
             throw new IllegalArgumentException("Target unit cannot be null.");
@@ -49,18 +46,16 @@ public final class QuantityLength {
         double baseValue = unit.convertToBaseUnit(value);
         double converted = targetUnit.convertFromBaseUnit(baseValue);
 
-        return new QuantityLength(converted, targetUnit);
+        return new QuantityWeight(converted, targetUnit);
     }
 
-    // =====================================================
-    // Addition (UC6 + UC7)
-    // =====================================================
 
-    public QuantityLength add(QuantityLength other) {
+    public QuantityWeight add(QuantityWeight other) {
         return add(other, this.unit);
     }
 
-    public QuantityLength add(QuantityLength other, LengthUnit targetUnit) {
+
+    public QuantityWeight add(QuantityWeight other, WeightUnit targetUnit) {
 
         if (other == null) {
             throw new IllegalArgumentException("Second operand cannot be null.");
@@ -77,12 +72,8 @@ public final class QuantityLength {
         double result =
                 targetUnit.convertFromBaseUnit(sumBase);
 
-        return new QuantityLength(result, targetUnit);
+        return new QuantityWeight(result, targetUnit);
     }
-
-    // =====================================================
-    // Equality (UC3)
-    // =====================================================
 
     @Override
     public boolean equals(Object obj) {
@@ -90,7 +81,7 @@ public final class QuantityLength {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        QuantityLength other = (QuantityLength) obj;
+        QuantityWeight other = (QuantityWeight) obj;
 
         return Math.abs(this.toBaseUnit() - other.toBaseUnit()) < EPSILON;
     }
