@@ -10,7 +10,7 @@ public class QuantityMeasurementApp {
 
         try {
 
-            System.out.println("=== Quantity Measurement Application ===");
+            System.out.println("=== UC10 Generic Quantity Measurement App ===");
             System.out.println("1. Length Operations");
             System.out.println("2. Weight Operations");
             System.out.print("Choose category (1-2): ");
@@ -18,225 +18,152 @@ public class QuantityMeasurementApp {
             int category = scanner.nextInt();
 
             switch (category) {
-
-                case 1:
-                    handleLength(scanner);
-                    break;
-
-                case 2:
-                    handleWeight(scanner);
-                    break;
-
-                default:
-                    System.out.println("Invalid category.");
+                case 1 -> handleLength(scanner);
+                case 2 -> handleWeight(scanner);
+                default -> System.out.println("Invalid category.");
             }
 
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid input: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("Unexpected error occurred.");
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
-    // =====================================================
-    // LENGTH SECTION (UC1–UC8)
-    // =====================================================
 
-    private static void handleLength(Scanner scanner) {
+    private static <U extends Enum<U> & IMeasurable>
+    void performConversion(Scanner scanner, Class<U> unitType) {
 
-        System.out.println("\n--- Length Operations ---");
-        System.out.println("1. Convert Length");
-        System.out.println("2. Check Equality");
-        System.out.println("3. Add Lengths (Result in First Unit)");
-        System.out.println("4. Add Lengths (Explicit Target Unit)");
-        System.out.println("5. Enum Base Conversion Demo");
-        System.out.print("Choose option (1-5): ");
-
-        int choice = scanner.nextInt();
-
-        switch (choice) {
-
-            case 1:
-                performLengthConversion(scanner);
-                break;
-
-            case 2:
-                performLengthEquality(scanner);
-                break;
-
-            case 3:
-                performLengthAdditionImplicit(scanner);
-                break;
-
-            case 4:
-                performLengthAdditionExplicit(scanner);
-                break;
-
-            case 5:
-                performLengthEnumBaseConversion(scanner);
-                break;
-
-            default:
-                System.out.println("Invalid choice.");
-        }
-    }
-
-    private static void performLengthConversion(Scanner scanner) {
-
-        System.out.print("Enter value: ");
-        double value = scanner.nextDouble();
-
-        System.out.print("Enter source unit (FEET, INCHES, YARDS, CENTIMETERS): ");
-        LengthUnit source = LengthUnit.valueOf(scanner.next().toUpperCase());
+        Quantity<U> quantity = readQuantity(scanner, "source", unitType);
 
         System.out.print("Enter target unit: ");
-        LengthUnit target = LengthUnit.valueOf(scanner.next().toUpperCase());
+        U target = Enum.valueOf(unitType,
+                scanner.next().toUpperCase());
 
-        QuantityLength quantity = new QuantityLength(value, source);
         System.out.println("Output: " + quantity.convertTo(target));
     }
 
-    private static void performLengthEquality(Scanner scanner) {
+    private static <U extends Enum<U> & IMeasurable>
+    void performEquality(Scanner scanner, Class<U> unitType) {
 
-        QuantityLength q1 = readLength(scanner, "first");
-        QuantityLength q2 = readLength(scanner, "second");
+        Quantity<U> q1 = readQuantity(scanner, "first", unitType);
+        Quantity<U> q2 = readQuantity(scanner, "second", unitType);
 
         System.out.println("Output: " + q1.equals(q2));
     }
 
-    private static void performLengthAdditionImplicit(Scanner scanner) {
+    private static <U extends Enum<U> & IMeasurable>
+    void performAdditionImplicit(Scanner scanner, Class<U> unitType) {
 
-        QuantityLength q1 = readLength(scanner, "first");
-        QuantityLength q2 = readLength(scanner, "second");
+        Quantity<U> q1 = readQuantity(scanner, "first", unitType);
+        Quantity<U> q2 = readQuantity(scanner, "second", unitType);
 
         System.out.println("Output: " + q1.add(q2));
     }
 
-    private static void performLengthAdditionExplicit(Scanner scanner) {
+    private static <U extends Enum<U> & IMeasurable>
+    void performAdditionExplicit(Scanner scanner, Class<U> unitType) {
 
-        QuantityLength q1 = readLength(scanner, "first");
-        QuantityLength q2 = readLength(scanner, "second");
+        Quantity<U> q1 = readQuantity(scanner, "first", unitType);
+        Quantity<U> q2 = readQuantity(scanner, "second", unitType);
 
         System.out.print("Enter target unit: ");
-        LengthUnit target =
-                LengthUnit.valueOf(scanner.next().toUpperCase());
+        U target = Enum.valueOf(unitType,
+                scanner.next().toUpperCase());
 
         System.out.println("Output: " + q1.add(q2, target));
     }
 
-    private static void performLengthEnumBaseConversion(Scanner scanner) {
+    private static <U extends Enum<U> & IMeasurable>
+    void performMultipleAddition(Scanner scanner, Class<U> unitType) {
 
-        System.out.print("Enter value: ");
-        double value = scanner.nextDouble();
+        System.out.print("How many quantities to add? ");
+        int count = scanner.nextInt();
 
-        System.out.print("Enter unit: ");
-        LengthUnit unit =
-                LengthUnit.valueOf(scanner.next().toUpperCase());
+        if (count < 2) {
+            System.out.println("Need at least 2 quantities.");
+            return;
+        }
 
-        System.out.println("Converted to base unit (FEET): "
-                + unit.convertToBaseUnit(value));
+        Quantity<U> result = null;
+
+        for (int i = 1; i <= count; i++) {
+
+            Quantity<U> quantity =
+                    readQuantity(scanner, "quantity " + i, unitType);
+
+            if (result == null) {
+                result = quantity;
+            } else {
+                result = result.add(quantity);
+            }
+        }
+
+        System.out.print("Enter target unit for final result: ");
+        U target = Enum.valueOf(unitType,
+                scanner.next().toUpperCase());
+
+        result = result.convertTo(target);
+
+        System.out.println("Final Output: " + result);
     }
 
-    private static QuantityLength readLength(Scanner scanner,
-                                             String label) {
+    private static <U extends Enum<U> & IMeasurable>
+    Quantity<U> readQuantity(Scanner scanner,
+                             String label,
+                             Class<U> unitType) {
 
         System.out.print("Enter " + label + " value: ");
         double value = scanner.nextDouble();
 
         System.out.print("Enter " + label + " unit: ");
-        LengthUnit unit =
-                LengthUnit.valueOf(scanner.next().toUpperCase());
+        U unit = Enum.valueOf(unitType,
+                scanner.next().toUpperCase());
 
-        return new QuantityLength(value, unit);
+        return new Quantity<>(value, unit);
     }
 
-    // =====================================================
-    // WEIGHT SECTION (UC9)
-    // =====================================================
 
-    private static void handleWeight(Scanner scanner) {
+    private static void handleLength(Scanner scanner) {
 
-        System.out.println("\n--- Weight Operations ---");
-        System.out.println("1. Convert Weight");
-        System.out.println("2. Check Equality");
-        System.out.println("3. Add Weights (Result in First Unit)");
-        System.out.println("4. Add Weights (Explicit Target Unit)");
-        System.out.print("Choose option (1-4): ");
+        System.out.println("\n--- Length Operations ---");
+        System.out.println("1. Convert");
+        System.out.println("2. Equality");
+        System.out.println("3. Add (First Unit)");
+        System.out.println("4. Add (Target Unit)");
+        System.out.println("5. Add Multiple Quantities");
+        System.out.print("Choose option (1-5): ");
 
         int choice = scanner.nextInt();
 
         switch (choice) {
-
-            case 1:
-                performWeightConversion(scanner);
-                break;
-
-            case 2:
-                performWeightEquality(scanner);
-                break;
-
-            case 3:
-                performWeightAdditionImplicit(scanner);
-                break;
-
-            case 4:
-                performWeightAdditionExplicit(scanner);
-                break;
-
-            default:
-                System.out.println("Invalid choice.");
+            case 1 -> performConversion(scanner, LengthUnit.class);
+            case 2 -> performEquality(scanner, LengthUnit.class);
+            case 3 -> performAdditionImplicit(scanner, LengthUnit.class);
+            case 4 -> performAdditionExplicit(scanner, LengthUnit.class);
+            case 5 -> performMultipleAddition(scanner, LengthUnit.class);
+            default -> System.out.println("Invalid choice.");
         }
     }
 
-    private static void performWeightConversion(Scanner scanner) {
 
-        QuantityWeight weight = readWeight(scanner, "source");
+    private static void handleWeight(Scanner scanner) {
 
-        System.out.print("Enter target unit (KILOGRAM, GRAM, POUND): ");
-        WeightUnit target =
-                WeightUnit.valueOf(scanner.next().toUpperCase());
+        System.out.println("\n--- Weight Operations ---");
+        System.out.println("1. Convert");
+        System.out.println("2. Equality");
+        System.out.println("3. Add (First Unit)");
+        System.out.println("4. Add (Target Unit)");
+        System.out.println("5. Add Multiple Quantities");
+        System.out.print("Choose option (1-5): ");
 
-        System.out.println("Output: " + weight.convertTo(target));
-    }
+        int choice = scanner.nextInt();
 
-    private static void performWeightEquality(Scanner scanner) {
-
-        QuantityWeight w1 = readWeight(scanner, "first");
-        QuantityWeight w2 = readWeight(scanner, "second");
-
-        System.out.println("Output: " + w1.equals(w2));
-    }
-
-    private static void performWeightAdditionImplicit(Scanner scanner) {
-
-        QuantityWeight w1 = readWeight(scanner, "first");
-        QuantityWeight w2 = readWeight(scanner, "second");
-
-        System.out.println("Output: " + w1.add(w2));
-    }
-
-    private static void performWeightAdditionExplicit(Scanner scanner) {
-
-        QuantityWeight w1 = readWeight(scanner, "first");
-        QuantityWeight w2 = readWeight(scanner, "second");
-
-        System.out.print("Enter target unit: ");
-        WeightUnit target =
-                WeightUnit.valueOf(scanner.next().toUpperCase());
-
-        System.out.println("Output: " + w1.add(w2, target));
-    }
-
-    private static QuantityWeight readWeight(Scanner scanner,
-                                             String label) {
-
-        System.out.print("Enter " + label + " value: ");
-        double value = scanner.nextDouble();
-
-        System.out.print("Enter " + label + " unit (KILOGRAM, GRAM, POUND): ");
-        WeightUnit unit =
-                WeightUnit.valueOf(scanner.next().toUpperCase());
-
-        return new QuantityWeight(value, unit);
+        switch (choice) {
+            case 1 -> performConversion(scanner, WeightUnit.class);
+            case 2 -> performEquality(scanner, WeightUnit.class);
+            case 3 -> performAdditionImplicit(scanner, WeightUnit.class);
+            case 4 -> performAdditionExplicit(scanner, WeightUnit.class);
+            case 5 -> performMultipleAddition(scanner, WeightUnit.class);
+            default -> System.out.println("Invalid choice.");
+        }
     }
 }
