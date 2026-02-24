@@ -90,7 +90,6 @@ public class Quantity<U extends IMeasurable> {
 
         if (!(obj instanceof Quantity<?> other)) return false;
 
-        // 🚨 Cross-category prevention
         if (!this.unit.getClass().equals(other.unit.getClass())) {
             return false;
         }
