@@ -78,6 +78,77 @@ public class Quantity<U extends IMeasurable> {
 
         return new Quantity<>(result, targetUnit);
     }
+    
+
+    /**
+     * Subtracts another quantity from this quantity.
+     * Result is returned in this quantity's unit.
+     */
+    public Quantity<U> subtract(Quantity<U> other) {
+        return subtract(other, this.unit);
+    }
+
+    /**
+     * Subtracts another quantity from this quantity.
+     * Result is returned in specified target unit.
+     */
+    public Quantity<U> subtract(Quantity<U> other, U targetUnit) {
+
+        validateOperand(other);
+        validateTargetUnit(targetUnit);
+
+        double base1 = this.unit.convertToBaseUnit(this.value);
+        double base2 = other.unit.convertToBaseUnit(other.value);
+
+        double baseResult = base1 - base2;
+
+        double converted =
+                targetUnit.convertFromBaseUnit(baseResult);
+
+        return new Quantity<>(roundToTwoDecimals(converted),
+                targetUnit);
+    }
+
+    /**
+     * Divides this quantity by another quantity.
+     * Returns a dimensionless scalar ratio.
+     */
+    public double divide(Quantity<U> other) {
+
+        validateOperand(other);
+
+        double base1 = this.unit.convertToBaseUnit(this.value);
+        double base2 = other.unit.convertToBaseUnit(other.value);
+
+        if (Math.abs(base2) < EPSILON) {
+            throw new ArithmeticException("Division by zero quantity");
+        }
+
+        return base1 / base2;
+    }
+
+    /* ===================================================== */
+
+    private void validateOperand(Quantity<U> other) {
+
+        if (other == null) {
+            throw new IllegalArgumentException("Operand cannot be null");
+        }
+
+        if (!this.unit.getClass().equals(other.unit.getClass())) {
+            throw new IllegalArgumentException("Different measurement categories");
+        }
+    }
+
+    private void validateTargetUnit(U targetUnit) {
+        if (targetUnit == null) {
+            throw new IllegalArgumentException("Target unit cannot be null");
+        }
+    }
+
+    private double roundToTwoDecimals(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
 
     // =====================================================
     // EQUALITY
