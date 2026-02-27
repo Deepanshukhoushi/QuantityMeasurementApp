@@ -6,7 +6,7 @@ import java.util.function.DoubleBinaryOperator;
 public class Quantity<U extends IMeasurable> {
 
     private static final double EPSILON = 1e-6;
-    
+
     private final double value;
     private final U unit;
 
@@ -39,10 +39,13 @@ public class Quantity<U extends IMeasurable> {
         if (targetUnit == null)
             throw new IllegalArgumentException("Target unit cannot be null");
 
+        if (!this.unit.getClass().equals(targetUnit.getClass()))
+            throw new IllegalArgumentException("Different measurement categories");
+
         double base = unit.convertToBaseUnit(value);
         double converted = targetUnit.convertFromBaseUnit(base);
 
-        return new Quantity<>(converted, targetUnit);
+        return new Quantity<>(round(converted), targetUnit);
     }
 
     // =====================================================
@@ -127,7 +130,7 @@ public class Quantity<U extends IMeasurable> {
     }
 
     // =====================================================
-    // CENTRALIZED VALIDATION (DRY)
+    // CENTRALIZED VALIDATION (UPDATED FOR UC14)
     // =====================================================
 
     private void validateArithmeticOperands(
@@ -147,6 +150,10 @@ public class Quantity<U extends IMeasurable> {
 
         if (targetUnitRequired && targetUnit == null)
             throw new IllegalArgumentException("Target unit cannot be null");
+
+        // 🔥 UC14 ADDITION
+        // Validate arithmetic capability BEFORE operation
+        this.unit.validateOperationSupport("ARITHMETIC");
     }
 
     // =====================================================

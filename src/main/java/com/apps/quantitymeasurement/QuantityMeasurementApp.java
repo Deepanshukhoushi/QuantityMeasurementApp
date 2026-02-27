@@ -10,11 +10,12 @@ public class QuantityMeasurementApp {
 
         try {
 
-            System.out.println("=== UC12 Generic Quantity Measurement App ===");
+            System.out.println("=== UC14 Generic Quantity Measurement App ===");
             System.out.println("1. Length Operations (FEET, INCHES, YARDS, CENTIMETERS)");
             System.out.println("2. Weight Operations (KILOGRAM, GRAM, POUND)");
             System.out.println("3. Volume Operations (LITRE, MILLILITRE, GALLON)");
-            System.out.print("Choose category (1-3): ");
+            System.out.println("4. Temperature Operations (CELSIUS, FAHRENHEIT, KELVIN)");
+            System.out.print("Choose category (1-4): ");
 
             int category = scanner.nextInt();
 
@@ -22,16 +23,19 @@ public class QuantityMeasurementApp {
                 case 1 -> handleCategory(scanner, LengthUnit.class);
                 case 2 -> handleCategory(scanner, WeightUnit.class);
                 case 3 -> handleCategory(scanner, VolumeUnit.class);
+                case 4 -> handleCategory(scanner, TemperatureUnit.class);
                 default -> System.out.println("Invalid category.");
             }
 
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Unsupported Operation: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
 
     // =====================================================
-    // GENERIC CATEGORY HANDLER (NOW UC12)
+    // GENERIC CATEGORY HANDLER
     // =====================================================
 
     private static <U extends Enum<U> & IMeasurable>
@@ -50,16 +54,20 @@ public class QuantityMeasurementApp {
 
         int choice = scanner.nextInt();
 
-        switch (choice) {
-            case 1 -> performConversion(scanner, unitType);
-            case 2 -> performEquality(scanner, unitType);
-            case 3 -> performAdditionImplicit(scanner, unitType);
-            case 4 -> performAdditionExplicit(scanner, unitType);
-            case 5 -> performMultipleAddition(scanner, unitType);
-            case 6 -> performSubtractionImplicit(scanner, unitType);
-            case 7 -> performSubtractionExplicit(scanner, unitType);
-            case 8 -> performDivision(scanner, unitType);
-            default -> System.out.println("Invalid choice.");
+        try {
+            switch (choice) {
+                case 1 -> performConversion(scanner, unitType);
+                case 2 -> performEquality(scanner, unitType);
+                case 3 -> performAdditionImplicit(scanner, unitType);
+                case 4 -> performAdditionExplicit(scanner, unitType);
+                case 5 -> performMultipleAddition(scanner, unitType);
+                case 6 -> performSubtractionImplicit(scanner, unitType);
+                case 7 -> performSubtractionExplicit(scanner, unitType);
+                case 8 -> performDivision(scanner, unitType);
+                default -> System.out.println("Invalid choice.");
+            }
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Unsupported Operation: " + e.getMessage());
         }
     }
 
@@ -147,8 +155,6 @@ public class QuantityMeasurementApp {
         System.out.println("Final Output: " + result.convertTo(target));
     }
 
-    // ================= SUBTRACTION =================
-
     private static <U extends Enum<U> & IMeasurable>
     void performSubtractionImplicit(Scanner scanner, Class<U> unitType) {
 
@@ -170,8 +176,6 @@ public class QuantityMeasurementApp {
         System.out.println("Output: " + q1.subtract(q2, target));
     }
 
-    // ================= DIVISION =================
-
     private static <U extends Enum<U> & IMeasurable>
     void performDivision(Scanner scanner, Class<U> unitType) {
 
@@ -185,10 +189,13 @@ public class QuantityMeasurementApp {
 
     private static <U extends Enum<U>>
     void printAvailableUnits(Class<U> unitType) {
+
         System.out.println("\nAvailable Units:");
+
         for (U unit : unitType.getEnumConstants()) {
             System.out.println("- " + unit.name());
         }
+
         System.out.println();
     }
 
