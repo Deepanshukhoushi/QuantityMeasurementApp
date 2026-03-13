@@ -579,3 +579,41 @@ Refactor `IMeasurable` to support **optional arithmetic operations** using defau
 👉 [UC14 – Temperature Measurement](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC14-Temperature-Measurement)
 
 ---
+
+## 🏗️ UC15 – N-Tier Architecture Refactoring
+
+## Description
+UC15 refactors the Quantity Measurement Application from a monolithic design into a **professional N-Tier architecture**.  
+The system is divided into **Application, Controller, Service, and Entity/Model layers** to achieve clear separation of concerns.
+
+## Objective
+Improve scalability, maintainability, and testability by separating **presentation, business logic, and data representation**.
+
+## Architecture Layers
+- **Application Layer** – `QuantityMeasurementApp` initializes components and starts the application.
+- **Controller Layer** – `QuantityMeasurementController` handles requests and delegates operations.
+- **Service Layer** – `QuantityMeasurementServiceImpl` implements business logic for comparison, conversion, and arithmetic.
+- **Entity/Model Layer** – `QuantityDTO`, `QuantityModel`, and `QuantityMeasurementEntity` represent data structures.
+
+## Key Components
+- `IQuantityMeasurementService` – Service contract
+- `IQuantityMeasurementRepository` – Data access contract
+- `QuantityMeasurementCacheRepository` – Singleton in-memory repository
+- `QuantityMeasurementException` – Custom exception for measurement errors
+
+## Key Benefits
+- Separation of Concerns (SoC)
+- Improved testability and maintainability
+- Reusable service layer for CLI, REST, or GUI
+- Dependency Injection ready
+- Supports design patterns: **Factory, Singleton, Facade**
+
+## Postconditions
+- All UC1–UC14 functionality preserved
+- Business logic isolated from UI
+- Layered architecture ready for **REST APIs or Spring Boot integration**
+
+🔗 _Code Link:_ 
+👉 [UC15 – N-Tier Architecture Refactoring](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC15-N-Tier)
+
+---
