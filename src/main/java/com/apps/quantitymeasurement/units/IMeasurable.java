@@ -1,4 +1,4 @@
-package com.apps.quantitymeasurement;
+package com.apps.quantitymeasurement.units;
 
 @FunctionalInterface
 interface SupportsArithmetic {
@@ -7,20 +7,20 @@ interface SupportsArithmetic {
 
 public interface IMeasurable {
 
-    double getConversionFactor();
-
+    // Conversion methods 
     double convertToBaseUnit(double value);
-
     double convertFromBaseUnit(double baseValue);
-
+    double getConversionFactor();
     String getUnitName();
 
-    SupportsArithmetic ARITHMETIC_SUPPORT = () -> true;
+    // Default arithmetic capability 
+    SupportsArithmetic supportsArithmetic = () -> true;
 
     default boolean supportsArithmetic() {
-        return ARITHMETIC_SUPPORT.isSupported();
+        return supportsArithmetic.isSupported();
     }
 
+    // Default validation 
     default void validateOperationSupport(String operation) {
     }
 }
