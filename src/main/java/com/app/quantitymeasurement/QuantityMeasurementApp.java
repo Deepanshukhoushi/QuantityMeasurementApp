@@ -1,20 +1,25 @@
 /**
  * QuantityMeasurementApp.java
- * This is the main entry point of the Quantity Measurement Application.
- * It is responsible for bootstrapping the application by initializing the configuration,
- * setting up the database connection pool, determining the appropriate repository implementation
- * (cache vs database based on application properties), and starting the user interaction
- * via the QuantityMeasurementController. It orchestrates the lifecycle of the application,
- * including clean up of resources when the application terminates.
+ *
+ * Main entry point of the Quantity Measurement Application.
+ * Responsible for bootstrapping configuration, database initialization,
+ * repository selection, starting the controller, and cleaning up resources.
+ *
+ * Additionally, it automatically starts the H2 Web Console so the database
+ * can be inspected at http://localhost:8082 without manual startup.
  *
  * @author Developer
  * @version 16.0
  * @since 16.0
  */
+
 package com.app.quantitymeasurement;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Logger;
+
+import org.h2.tools.Server;
 
 import com.app.quantitymeasurement.controller.QuantityMeasurementController;
 import com.app.quantitymeasurement.entity.QuantityMeasurementEntity;
@@ -32,16 +37,20 @@ public class QuantityMeasurementApp {
 
     private static IQuantityMeasurementRepository repository;
 
+    private static Server webServer;   // H2 console server
+
     public static void main(String[] args) {
 
         logger.info("Starting Quantity Measurement Application...");
 
         try {
-        	
-        	ApplicationConfig.loadProperties();
-        	
-        	DatabaseConfig.initializeDatabase();
-        	
+
+            startH2Console(); // Start H2 web console automatically
+
+            ApplicationConfig.loadProperties();
+
+            DatabaseConfig.initializeDatabase();
+
             repository = initializeRepository();
 
             QuantityMeasurementServiceImpl service =
@@ -55,10 +64,59 @@ public class QuantityMeasurementApp {
             reportMeasurements();
 
         } catch (Exception e) {
+
             logger.severe("Application error: " + e.getMessage());
+
         } finally {
+
             closeResources();
+            stopH2Console();
         }
+    }
+
+    /**
+     * Starts the H2 Web Console automatically.
+     */
+    
+    private static Server web;
+    private static Server tcp;
+    
+    private static void startH2Console() {
+        try {
+
+            tcp = Server.createTcpServer(
+                    "-tcp",
+                    "-tcpAllowOthers",
+                    "-tcpPort",
+                    "9092").start();
+
+            web = Server.createWebServer(
+                    "-web",
+                    "-webAllowOthers",
+                    "-webPort",
+                    "8082").start();
+
+            logger.info("H2 Console started at http://localhost:8082");
+
+        } catch (SQLException e) {
+            logger.warning("Unable to start H2 Console: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Stops the H2 Web Console when application shuts down.
+     */
+    private static void stopH2Console() {
+
+        if (web != null) {
+            web.stop();
+        }
+
+        if (tcp != null) {
+            tcp.stop();
+        }
+
+        logger.info("H2 servers stopped.");
     }
 
     private static IQuantityMeasurementRepository initializeRepository() {
