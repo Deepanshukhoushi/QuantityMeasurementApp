@@ -617,3 +617,50 @@ Improve scalability, maintainability, and testability by separating **presentati
 👉 [UC15 – N-Tier Architecture Refactoring](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC15-N-Tier)
 
 ---
+
+## 🗄️ UC16 – Database Integration with JDBC
+
+## Description
+UC16 enhances the Quantity Measurement Application by integrating a **relational database using JDBC** for persistent storage.  
+The application now stores measurement operations in a database instead of relying only on in-memory caching.
+
+## Objective
+Enable **long-term persistence, audit history, and scalable storage** using a database repository while maintaining the N-Tier architecture from UC15.
+
+## Key Enhancements
+- Introduced `QuantityMeasurementDatabaseRepository`
+- JDBC integration with **H2 database (development/testing)**
+- Maven project structure and dependency management
+- Connection pooling for efficient database access
+- Parameterized SQL queries for **SQL injection protection**
+- Database schema initialization using `schema.sql`
+
+## Architecture Integration
+- **Controller Layer** → Handles requests  
+- **Service Layer** → Business logic  
+- **Repository Layer** → JDBC database operations  
+- **Entity Layer** → Data models and DTOs  
+
+## Key Components
+- `ApplicationConfig` – Loads database configuration  
+- `ConnectionPool` – Manages database connections  
+- `DatabaseException` – Handles database errors  
+- `QuantityMeasurementDatabaseRepository` – JDBC persistence implementation  
+
+## Features
+- Store and retrieve quantity measurement history
+- Query measurements by operation or measurement type
+- Support both **cache and database repositories via dependency injection**
+- Logging using SLF4J
+- Maven build and test automation
+
+## Postconditions
+- All UC1–UC15 functionality preserved
+- Measurements persisted in database
+- Connection pooling and transaction management implemented
+- System ready for **enterprise-level persistence and analytics**
+
+🔗 _Code Link:_ 
+👉 [UC16 – Database Integration with JDBC](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC16-Database-Integration-with-JDBC)
+
+---
