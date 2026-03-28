@@ -714,3 +714,174 @@ Modernize the application with **Spring ecosystem**, enabling scalable, maintain
 👉 [UC17 – Spring Boot REST + JPA Integration](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC17-Spring-Backend-for-Quantity-Measurement)
 
 ---
+
+## 🔐 UC18 – Google Authentication and User Management
+
+## Description
+UC18 implements comprehensive **OAuth2 authentication with Google** and advanced **user management** features.  
+The system supports both local email/password authentication and Google OAuth2, with seamless user registration and profile management.
+
+## Objective
+Provide secure, scalable authentication with Google OAuth2 integration and complete user lifecycle management.
+
+## Key Features
+- **Dual Authentication**: Local (email/password) + Google OAuth2
+- **Automatic User Registration**: First-time Google users auto-created
+- **Profile Management**: User details, profile pictures, email verification
+- **Session Management**: JWT tokens with refresh token rotation
+- **Security**: Password strength validation, email OTP for password reset
+- **Audit Trail**: Track authentication events and user activities
+
+## Authentication Flow
+
+### Local Authentication
+1. **Registration**: User provides email, password, name, mobile
+2. **Validation**: Strong password requirements enforced
+3. **Storage**: Password BCrypt hashed, email marked unverified
+4. **Welcome Email**: Sent asynchronously after registration
+5. **Login**: Email/password validation, JWT generation
+6. **Session**: Access token (10 days) + Refresh token (30 days)
+
+### Google OAuth2 Authentication
+1. **Redirect**: User redirected to Google OAuth2 consent screen
+2. **Authorization**: Google authenticates user and returns authorization code
+3. **Token Exchange**: Backend exchanges code for access/id tokens
+4. **User Lookup**: Find existing user by Google provider ID
+5. **Auto Registration**: Create new user if not found
+6. **JWT Generation**: Generate access and refresh tokens
+7. **Frontend Redirect**: Redirect to frontend with JWT
+
+### Password Reset Flow
+1. **Request**: User provides email address
+2. **Validation**: Check email exists and is verified
+3. **OTP Generation**: 6-digit OTP with 15-minute expiry
+4. **Email Delivery**: Send OTP to user's email
+5. **Verification**: User provides OTP and new password
+6. **Update**: Validate OTP, update password, invalidate sessions
+
+## User Management Features
+
+### Profile Management
+- **Personal Information**: First name, last name, email, mobile
+- **Profile Picture**: URL from OAuth2 provider or custom
+- **Email Verification**: Track verification status
+- **Authentication Provider**: Track local vs Google authentication
+- **Provider ID**: Store OAuth2 provider's unique user ID
+
+### Security Features
+- **Password Strength**: 8+ chars, uppercase, lowercase, number, special character
+- **Email Validation**: Format validation and domain verification
+- **Mobile Validation**: 10-digit number validation
+- **Session Security**: JWT with 512-bit signing key
+- **Token Rotation**: Refresh tokens rotated on each use
+- **Blacklisting**: Access tokens blacklisted on logout
+
+### Audit and Monitoring
+- **Authentication Events**: Log successful/failed logins
+- **Password Changes**: Track password reset events
+- **OAuth2 Events**: Log Google authentication attempts
+- **User Activity**: Track measurement operations per user
+- **Error Tracking**: Comprehensive error logging
+
+## API Endpoints
+
+### Authentication Endpoints
+```http
+POST /api/auth/register          # Local user registration
+POST /api/auth/login             # Local user login
+POST /api/auth/logout            # Secure logout with token blacklisting
+POST /api/auth/refresh           # Refresh access token
+POST /api/auth/forgotPassword/{email}  # Request password reset OTP
+POST /api/auth/resetPassword/{email}   # Reset password with OTP
+GET  /oauth2/authorize/google    # Google OAuth2 authorization
+GET  /login/oauth2/code/google   # Google OAuth2 callback
+```
+
+### User Management Endpoints
+```http
+GET  /api/user/me               # Get current user profile
+PUT  /api/user/profile          # Update user profile
+DELETE /api/user/account        # Delete user account
+GET  /api/user/history          # Get user's measurement history
+GET  /api/user/statistics       # Get user's usage statistics
+```
+
+## Security Implementation
+
+### JWT Token Structure
+```json
+{
+  "sub": "123",                    // User ID
+  "jti": "uuid",                   // JWT ID for blacklisting
+  "iat": 1640995200,              // Issued at
+  "exp": 1640998800,              // Expires at
+  "roles": ["ROLE_USER"],         // User roles
+  "provider": "google",           // Authentication provider
+  "email": "user@example.com"     // User email
+}
+```
+
+### OAuth2 Configuration
+```yaml
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: email,profile
+        provider:
+          google:
+            user-name-attribute: sub
+```
+
+### Password Security
+- **BCrypt Hashing**: 12 rounds for secure password storage
+- **Strength Validation**: Comprehensive password policy
+- **Reset Token**: 6-digit OTP with 15-minute expiry
+- **Email Verification**: Track email verification status
+
+## Integration Points
+
+### Frontend Integration
+- **OAuth2 Redirect**: Seamless redirect to Google consent screen
+- **Token Storage**: Secure JWT storage in HTTP-only cookies or localStorage
+- **Session Management**: Automatic token refresh and logout handling
+- **Profile Sync**: Synchronize user profile from Google on login
+
+### Email Service Integration
+- **Welcome Emails**: Send welcome email after registration
+- **Password Reset**: Send OTP via email for password reset
+- **Email Templates**: Professional email templates for all communications
+- **Async Processing**: Non-blocking email sending
+
+### Monitoring Integration
+- **Actuator Endpoints**: Health checks and metrics
+- **Logging**: Structured logging for authentication events
+- **Error Tracking**: Comprehensive error handling and logging
+- **Performance Monitoring**: Track authentication performance
+
+## Postconditions
+- Users can authenticate via email/password or Google OAuth2
+- Seamless user registration for first-time Google users
+- Secure password reset with email OTP
+- Complete audit trail of authentication events
+- Scalable user management for enterprise use
+- All UC1–UC17 functionality preserved with authenticated access
+
+## Key Concepts
+- **OAuth2 Authorization Code Flow** with PKCE
+- **JWT-based Stateless Authentication**
+- **Refresh Token Rotation** for security
+- **Email OTP** for password reset
+- **User Profile Management** with OAuth2 integration
+- **Security Best Practices** (BCrypt, JWT, HTTPS)
+- **Audit Trail** for compliance and monitoring
+- **Scalable User Management** for enterprise deployment
+
+🔗 _Code Link:_ 
+👉 [UC18 – Google Authentication and User Management](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC18-Google-Authentication-and-User-Management)
+
+---
