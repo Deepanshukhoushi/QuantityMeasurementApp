@@ -1,4 +1,4 @@
-package com.app.quantitymeasurement.model;
+package com.app.quantitymeasurement.enums;
 
 /**
  * Enum representing the types of operations available in the

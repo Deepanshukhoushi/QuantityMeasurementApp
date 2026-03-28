@@ -19,9 +19,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.app.quantitymeasurement.model.QuantityDTO;
-import com.app.quantitymeasurement.model.QuantityInputDTO;
-import com.app.quantitymeasurement.model.QuantityMeasurementDTO;
+import com.app.quantitymeasurement.dto.QuantityDTO;
+import com.app.quantitymeasurement.dto.QuantityInputDTO;
+import com.app.quantitymeasurement.dto.QuantityMeasurementDTO;
 import com.app.quantitymeasurement.service.IQuantityMeasurementService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -80,7 +80,7 @@ public class QuantityMeasurementControllerTest {
 	void testCompareQuantities_Success() throws Exception {
 		Mockito.when(service.compare(any(QuantityDTO.class), any(QuantityDTO.class))).thenReturn(mockCompareResult);
 
-		mockMvc.perform(post("/api/v1/quantities/compare").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/user/quantities/compare").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(validCompareInput))).andExpect(status().isOk())
 				.andExpect(jsonPath("$.operation").value("COMPARE"))
 				.andExpect(jsonPath("$.resultString").value("Equal")).andExpect(jsonPath("$.error").value(false));
@@ -92,7 +92,7 @@ public class QuantityMeasurementControllerTest {
 	void testCompareQuantities_Error() throws Exception {
 		Mockito.when(service.compare(any(), any())).thenThrow(new RuntimeException("Comparison failed"));
 
-		mockMvc.perform(post("/api/v1/quantities/compare").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/user/quantities/compare").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(validCompareInput))).andExpect(status().isBadRequest());
 	}
 
@@ -106,7 +106,7 @@ public class QuantityMeasurementControllerTest {
 
 		Mockito.when(service.add(any(QuantityDTO.class), any(QuantityDTO.class))).thenReturn(mockAddResult);
 
-		mockMvc.perform(post("/api/v1/quantities/add").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/user/quantities/add").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(validCompareInput))).andExpect(status().isOk())
 				.andExpect(jsonPath("$.operation").value("ADD")).andExpect(jsonPath("$.resultValue").value(24.0))
 				.andExpect(jsonPath("$.resultUnit").value("INCHES")).andExpect(jsonPath("$.error").value(false));
@@ -118,7 +118,7 @@ public class QuantityMeasurementControllerTest {
 	void testAddQuantities_Error() throws Exception {
 		Mockito.when(service.add(any(), any())).thenThrow(new RuntimeException("Addition failed"));
 
-		mockMvc.perform(post("/api/v1/quantities/add").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/user/quantities/add").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(validCompareInput))).andExpect(status().isBadRequest());
 	}
 
@@ -127,7 +127,7 @@ public class QuantityMeasurementControllerTest {
 		List<QuantityMeasurementDTO> history = Arrays.asList(mockCompareResult);
 		Mockito.when(service.getOperationHistory("COMPARE")).thenReturn(history);
 
-		mockMvc.perform(get("/api/v1/quantities/history/operation/COMPARE")).andExpect(status().isOk())
+		mockMvc.perform(get("/api/user/quantities/history/operation/COMPARE")).andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].operation").value("COMPARE"));
 
 		Mockito.verify(service, Mockito.times(1)).getOperationHistory("COMPARE");
@@ -137,7 +137,7 @@ public class QuantityMeasurementControllerTest {
 	void testGetOperationCount_Success() throws Exception {
 		Mockito.when(service.getOperationCount("ADD")).thenReturn(5L);
 
-		mockMvc.perform(get("/api/v1/quantities/count/ADD")).andExpect(status().isOk())
+		mockMvc.perform(get("/api/user/quantities/count/ADD")).andExpect(status().isOk())
 				.andExpect(jsonPath("$").value(5));
 
 		Mockito.verify(service, Mockito.times(1)).getOperationCount("ADD");

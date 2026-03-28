@@ -2,12 +2,18 @@ package com.app.quantitymeasurement.service;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.app.quantitymeasurement.model.QuantityDTO;
-import com.app.quantitymeasurement.model.QuantityMeasurementDTO;
-import com.app.quantitymeasurement.model.QuantityMeasurementEntity;
+import com.app.quantitymeasurement.dto.QuantityDTO;
+import com.app.quantitymeasurement.dto.QuantityMeasurementDTO;
+import com.app.quantitymeasurement.entity.QuantityMeasurementEntity;
+import com.app.quantitymeasurement.entity.User;
 import com.app.quantitymeasurement.repository.QuantityMeasurementRepository;
+import com.app.quantitymeasurement.repository.UserRepository;
+import com.app.quantitymeasurement.security.UserPrincipal;
 import com.app.quantitymeasurement.unit.IMeasurable;
 import com.app.quantitymeasurement.unit.LengthUnit;
 import com.app.quantitymeasurement.unit.TemperatureUnit;
@@ -16,16 +22,39 @@ import com.app.quantitymeasurement.unit.WeightUnit;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
-@RequiredArgsConstructor
 /**
  * Implementation of IQuantityMeasurementService.
  * Handles the logic for unit conversions, comparisons, and arithmetic operations
  * while persisting each operation to the database via QuantityMeasurementRepository.
  */
+@Service
+@RequiredArgsConstructor
+@Transactional
 public class QuantityMeasurementServiceImpl implements IQuantityMeasurementService {
 
+    private static final double COMPARISON_TOLERANCE = 0.0001;
+
     private final QuantityMeasurementRepository repository;
+    private final UserRepository userRepository;
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserPrincipal) {
+            Long userId = ((UserPrincipal) auth.getPrincipal()).getId();
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        }
+        throw new RuntimeException("Unauthorized user: " + auth);
+    }
+
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        }
+        return false;
+    }
 
     // ================== COMPARE ==================
     @Override
@@ -46,6 +75,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setOperation("COMPARE");
         entity.setResultString(result ? "true" : "false");
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);
@@ -72,6 +102,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setResultUnit(targetUnit);
         entity.setResultMeasurementType(quantity.getMeasurementType());
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);
@@ -122,6 +153,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setResultUnit(q.getUnit());
         entity.setResultMeasurementType(q.getMeasurementType());
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);
@@ -153,6 +185,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setResultUnit(q.getUnit());
         entity.setResultMeasurementType(q.getMeasurementType());
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);
@@ -192,6 +225,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setResultUnit("RATIO");
         entity.setResultMeasurementType("Scalar");
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);
@@ -200,27 +234,39 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ================== HISTORY ==================
     @Override
     public List<QuantityMeasurementDTO> getOperationHistory(String operation) {
+        if (isAdmin()) {
+            return QuantityMeasurementDTO.fromList(repository.findByOperation(operation));
+        }
         return QuantityMeasurementDTO.fromList(
-                repository.findByOperation(operation)
+                repository.findByUserAndOperation(getCurrentUser(), operation)
         );
     }
 
     @Override
     public List<QuantityMeasurementDTO> getMeasurementsByType(String type) {
+        if (isAdmin()) {
+            return QuantityMeasurementDTO.fromList(repository.findByThisMeasurementType(type));
+        }
         return QuantityMeasurementDTO.fromList(
-                repository.findByThisMeasurementType(type)
+                repository.findByUserAndThisMeasurementType(getCurrentUser(), type)
         );
     }
 
     @Override
     public long getOperationCount(String operation) {
-        return repository.countByOperationAndIsErrorFalse(operation);
+        if (isAdmin()) {
+            return repository.countByOperationAndIsErrorFalse(operation);
+        }
+        return repository.countByUserAndOperationAndIsErrorFalse(getCurrentUser(), operation);
     }
 
     @Override
     public List<QuantityMeasurementDTO> getErrorHistory() {
+        if (isAdmin()) {
+            return QuantityMeasurementDTO.fromList(repository.findByIsErrorTrue());
+        }
         return QuantityMeasurementDTO.fromList(
-                repository.findByIsErrorTrue()
+                repository.findByUserAndIsErrorTrue(getCurrentUser())
         );
     }
 
@@ -246,7 +292,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         double val1 = u1.convertToBaseUnit(q1.getValue());
         double val2 = u2.convertToBaseUnit(q2.getValue());
         
-        return Math.abs(val1 - val2) < 0.0001;
+        return Math.abs(val1 - val2) < COMPARISON_TOLERANCE;
     }
 
     private double convertValue(QuantityDTO q, String targetUnitStr) {
@@ -297,6 +343,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setResultUnit(resultUnitStr);
         entity.setResultMeasurementType(q1.getMeasurementType());
         entity.setError(false);
+        entity.setUser(getCurrentUser());
 
         repository.save(entity);
         return QuantityMeasurementDTO.from(entity);

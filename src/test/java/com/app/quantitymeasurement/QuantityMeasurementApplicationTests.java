@@ -1,47 +1,76 @@
 package com.app.quantitymeasurement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.List;
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
-import com.app.quantitymeasurement.model.QuantityDTO;
-import com.app.quantitymeasurement.model.QuantityInputDTO;
-import com.app.quantitymeasurement.model.QuantityMeasurementDTO;
+import com.app.quantitymeasurement.dto.QuantityDTO;
+import com.app.quantitymeasurement.dto.QuantityInputDTO;
+import com.app.quantitymeasurement.entity.User;
+import com.app.quantitymeasurement.enums.AuthProvider;
+import com.app.quantitymeasurement.repository.UserRepository;
+import com.app.quantitymeasurement.security.UserPrincipal;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Integration tests for the Quantity Measurement Application.
- * This class performs end-to-end testing of the REST API endpoints using a random port.
+ * This class performs end-to-end testing of the REST API endpoints using MockMvc.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
+@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ActiveProfiles("test")
 public class QuantityMeasurementApplicationTests {
 
-    @LocalServerPort
-    private int port;
+    @Autowired
+    private MockMvc mockMvc;
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private UserPrincipal testUserPrincipal;
+
+    @BeforeEach
+    void setupUser() {
+        if (userRepository.findByEmail("test@example.com").isEmpty()) {
+            User user = User.builder()
+                    .email("test@example.com")
+                    .firstName("Test")
+                    .lastName("User")
+                    .provider(AuthProvider.local)
+                    .emailVerified(false)
+                    .build();
+            user = userRepository.save(user);
+            testUserPrincipal = new UserPrincipal(user);
+        } else {
+            testUserPrincipal = new UserPrincipal(userRepository.findByEmail("test@example.com").get());
+        }
+    }
 
     // ---------------- Helper Methods ----------------
 
     private String baseUrl() {
-        return "http://localhost:" + port + "/api/v1/quantities";
+        return "/api/user/quantities";
     }
 
     private QuantityInputDTO input(
@@ -66,204 +95,223 @@ public class QuantityMeasurementApplicationTests {
         return inputDTO;
     }
 
-    private HttpEntity<QuantityInputDTO> jsonEntity(QuantityInputDTO body) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(body, headers);
-    }
-
     // ---------------- Test Cases ----------------
 
     @Test
     @Order(1)
-    @DisplayName("Application context loads and test server starts")
+    @DisplayName("Application context loads and MockMvc is available")
     void contextLoads() {
-        assertThat(restTemplate).isNotNull();
-        assertThat(port).isGreaterThan(0);
-        System.out.println("✅ Test server on port: " + port);
+        assertThat(mockMvc).isNotNull();
     }
 
     @Test
     @Order(2)
     @DisplayName("POST /compare – 1 foot equals 12 inches → true")
-    void testCompare_FootEqualsInches() {
+    void testCompare_FootEqualsInches() throws Exception {
         QuantityInputDTO body = input(1.0, "FEET", "LengthUnit", 12.0, "INCHES", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getResultString()).isEqualTo("true");
+        
+        mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultString").value("true"));
     }
 
     @Test
     @Order(3)
     @DisplayName("POST /compare – 1 foot does NOT equal 1 inch → false")
-    void testCompare_FootNotEqualInch() {
+    void testCompare_FootNotEqualInch() throws Exception {
         QuantityInputDTO body = input(1.0, "FEET", "LengthUnit", 1.0, "INCHES", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat(response.getBody().getResultString()).isEqualTo("false");
+        
+        mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultString").value("false"));
     }
 
     @Test
     @Order(4)
-    @DisplayName("POST /compare – 1 gallon equals 3.785 litres → true")
-    void testCompare_GallonEqualsLitres() {
-        QuantityInputDTO body = input(1.0, "GALLON", "VolumeUnit", 3.785, "LITRE", "VolumeUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat(response.getBody().getResultString()).isEqualTo("true");
+    @DisplayName("POST /compare – 1 gallon equals 3.785 liters → true")
+    void testCompare_GallonEqualsLitres() throws Exception {
+        QuantityInputDTO body = input(1.0, "GALLON", "VolumeUnit", 3.785, "LITER", "VolumeUnit");
+        
+        mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultString").value("true"));
     }
 
     @Test
     @Order(5)
     @DisplayName("POST /compare – 212 Fahrenheit equals 100 Celsius → true")
-    void testCompare_FahrenheitEqualsCelsius() {
+    void testCompare_FahrenheitEqualsCelsius() throws Exception {
         QuantityInputDTO body = input(212.0, "FAHRENHEIT", "TemperatureUnit", 100.0, "CELSIUS", "TemperatureUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat(response.getBody().getResultString()).isEqualTo("true");
+        
+        mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultString").value("true"));
     }
 
     @Test
     @Order(6)
     @DisplayName("POST /convert — convert 100 Celsius to Fahrenheit")
-    void testConvert_CelsiusToFahrenheit() {
+    void testConvert_CelsiusToFahrenheit() throws Exception {
         QuantityInputDTO body = input(100.0, "CELSIUS", "TemperatureUnit", 0.0, "FAHRENHEIT", "TemperatureUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/convert", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(212.0);
+        
+        mockMvc.perform(post(baseUrl() + "/convert").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(212.0));
     }
 
     @Test
     @Order(7)
-    @DisplayName("POST /add — add 1 gallon and 3.785 litres = 2 gallons")
-    void testAdd_GallonAndLitres() {
-        QuantityInputDTO body = input(1.0, "GALLON", "VolumeUnit", 3.785, "LITRE", "VolumeUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/add", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(2.0);
+    @DisplayName("POST /add — add 1 gallon and 3.785 liters = 2 gallons")
+    void testAdd_GallonAndLitres() throws Exception {
+        QuantityInputDTO body = input(1.0, "GALLON", "VolumeUnit", 3.785, "LITER", "VolumeUnit");
+        
+        mockMvc.perform(post(baseUrl() + "/add").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(2.0));
     }
 
     @Test
     @Order(8)
     @DisplayName("POST /add-with-target-unit - 1 foot + 12 inches = 24 inches")
-    void testAddWithTargetUnit_FootAndInchesToInches() {
+    void testAddWithTargetUnit_FootAndInchesToInches() throws Exception {
         QuantityInputDTO body = inputWithTarget(1.0, "FEET", "LengthUnit", 12.0, "INCHES", "LengthUnit", 0.0, "INCHES", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/add-with-target-unit", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(24.0);
+        
+        mockMvc.perform(post(baseUrl() + "/add-with-target-unit").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(24.0));
     }
 
     @Test
     @Order(9)
     @DisplayName("POST /subtract - 2 feet - 12 inches = 1 foot")
-    void testSubtract_FeetMinusInches() {
+    void testSubtract_FeetMinusInches() throws Exception {
         QuantityInputDTO body = input(2.0, "FEET", "LengthUnit", 12.0, "INCHES", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/subtract", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(1.0);
+        
+        mockMvc.perform(post(baseUrl() + "/subtract").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(1.0));
     }
 
     @Test
     @Order(10)
     @DisplayName("POST /subtract-with-target-unit - 2 feet - 12 inches = 12 inches")
-    void testSubtractWithTargetUnit() {
+    void testSubtractWithTargetUnit() throws Exception {
         QuantityInputDTO body = inputWithTarget(2.0, "FEET", "LengthUnit", 12.0, "INCHES", "LengthUnit", 0.0, "INCHES", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/subtract-with-target-unit", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(12.0);
+        
+        mockMvc.perform(post(baseUrl() + "/subtract-with-target-unit").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(12.0));
     }
 
     @Test
     @Order(11)
     @DisplayName("POST /divide - 1 yard ÷ 1 foot = 3.0")
-    void testDivide_YardByFoot() {
+    void testDivide_YardByFoot() throws Exception {
         QuantityInputDTO body = input(1.0, "YARDS", "LengthUnit", 1.0, "FEET", "LengthUnit");
-        ResponseEntity<QuantityMeasurementDTO> response = restTemplate.exchange(
-                baseUrl() + "/divide", HttpMethod.POST, jsonEntity(body), QuantityMeasurementDTO.class);
-        assertThat((Double) response.getBody().getResultValue()).isEqualTo(3.0);
+        
+        mockMvc.perform(post(baseUrl() + "/divide").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultValue").value(3.0));
     }
 
     @Test
     @Order(12)
     @DisplayName("GET /history/operation/CONVERT - returns list of CONVERT operations")
-    @SuppressWarnings("unchecked")
-    void testGetHistoryByOperation_Convert() {
-        ResponseEntity<List> response = restTemplate.getForEntity(
-                baseUrl() + "/history/operation/CONVERT", List.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).isNotEmpty();
+    void testGetHistoryByOperation_Convert() throws Exception {
+        mockMvc.perform(get(baseUrl() + "/history/operation/CONVERT").with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isNotEmpty());
     }
 
     @Test
     @Order(13)
     @DisplayName("GET /history/type/TemperatureUnit - returns history for TemperatureUnit measurements")
-    @SuppressWarnings("unchecked")
-    void testGetHistoryByType_Temperature() {
-        ResponseEntity<List> response = restTemplate.getForEntity(
-                baseUrl() + "/history/type/TemperatureUnit", List.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).isNotEmpty();
+    void testGetHistoryByType_Temperature() throws Exception {
+        mockMvc.perform(get(baseUrl() + "/history/type/TemperatureUnit").with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isNotEmpty());
     }
 
     @Test
     @Order(14)
     @DisplayName("GET /count/DIVIDE - returns count of DIVIDE operations > 0")
-    void testGetOperationCount_Divide() {
-        ResponseEntity<Long> response = restTemplate.getForEntity(
-                baseUrl() + "/count/DIVIDE", Long.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).isGreaterThan(0L);
+    void testGetOperationCount_Divide() throws Exception {
+        MvcResult result = mockMvc.perform(get(baseUrl() + "/count/DIVIDE").with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andReturn();
+        
+        Long count = Long.parseLong(result.getResponse().getContentAsString());
+        assertThat(count).isGreaterThan(0L);
     }
 
     @Test
     @Order(15)
     @DisplayName("POST /divide — 1 yard ÷ 0 foot → error, GET /history/errored returns that error")
-    @SuppressWarnings("unchecked")
-    void testDivide_YardByFeet_Error() {
+    void testDivide_YardByFeet_Error() throws Exception {
         QuantityInputDTO body = input(1.0, "YARDS", "LengthUnit", 0.0, "FEET", "LengthUnit");
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                baseUrl() + "/divide", HttpMethod.POST, jsonEntity(body), String.class);
+        MvcResult result = mockMvc.perform(post(baseUrl() + "/divide").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andReturn();
+        
+        assertThat(result.getResponse().getStatus()).isEqualTo(422);
+        assertThat(result.getResponse().getContentAsString()).contains("Divide by zero");
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody()).contains("Divide by zero");
-
-        ResponseEntity<List> errorHistoryResponse = restTemplate.getForEntity(
-                baseUrl() + "/history/errored", List.class);
-
-        assertThat(errorHistoryResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        mockMvc.perform(get(baseUrl() + "/history/errored").with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     @Test
     @Order(16)
     @DisplayName("POST /compare — validation fails: Unit must be valid for the specified measurement type")
-    void testCompare_FootEqualsInches_UnitValidationFails() {
+    void testCompare_FootEqualsInches_UnitValidationFails() throws Exception {
         QuantityInputDTO body = input(1.0, "FOOT", "LengthUnit", 12.0, "INCHES", "LengthUnit");
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).contains("Unit must be valid for the specified measurement type");
+        MvcResult result = mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andReturn();
+                
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(result.getResponse().getContentAsString()).contains("Unit must be valid for the specified measurement type");
     }
 
     @Test
     @Order(17)
     @DisplayName("POST /compare — validation fails: Measurement type must be one of LengthUnit, VolumeUnit, WeightUnit, TemperatureUnit")
-    void testCompare_FootEqualsInches_TypeValidationFails() {
+    void testCompare_FootEqualsInches_TypeValidationFails() throws Exception {
         QuantityInputDTO body = input(1.0, "FEET", "InvalidType", 12.0, "INCHES", "LengthUnit");
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                baseUrl() + "/compare", HttpMethod.POST, jsonEntity(body), String.class);
+        MvcResult result = mockMvc.perform(post(baseUrl() + "/compare").with(user(testUserPrincipal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).contains("Measurement type must be one of");
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(result.getResponse().getContentAsString()).contains("Measurement type must be one of");
     }
 }

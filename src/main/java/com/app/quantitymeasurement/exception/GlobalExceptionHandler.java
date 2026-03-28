@@ -2,7 +2,6 @@ package com.app.quantitymeasurement.exception;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -13,18 +12,19 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-@ControllerAdvice
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Global Exception Handler for the Quantity Measurement Application.
- * This class intercepts various exceptions thrown by the controllers and
- * returns structured error responses with appropriate HTTP status codes.
+ * Intercepts exceptions thrown by controllers and returns structured,
+ * consistent JSON error responses with appropriate HTTP status codes.
  */
+@ControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    private static final Logger logger =
-            Logger.getLogger(GlobalExceptionHandler.class.getName());
+    // ── Error Response Structure ───────────────────────────────────────────────
 
-    // Error Response Class
     static class ErrorResponse {
         public LocalDateTime timestamp;
         public int status;
@@ -33,11 +33,21 @@ public class GlobalExceptionHandler {
         public String path;
     }
 
-    // 1. Validation Errors
+    private ErrorResponse build(HttpStatus status, String error, String message, WebRequest request) {
+        ErrorResponse err = new ErrorResponse();
+        err.timestamp = LocalDateTime.now();
+        err.status = status.value();
+        err.error = error;
+        err.message = message;
+        err.path = request.getDescription(false).replace("uri=", "");
+        return err;
+    }
+
+    // ── 1. Validation Errors (400) ────────────────────────────────────────────
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
-            MethodArgumentNotValidException ex,
-            WebRequest request) {
+            MethodArgumentNotValidException ex, WebRequest request) {
 
         List<String> errMsg = ex.getBindingResult()
                 .getAllErrors()
@@ -45,87 +55,86 @@ public class GlobalExceptionHandler {
                 .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.toList());
 
-        ErrorResponse error = new ErrorResponse();
-        error.timestamp = LocalDateTime.now();
-        error.status = HttpStatus.BAD_REQUEST.value();
-        error.error = "Validation Error";
-        error.message = String.join(", ", errMsg);
-        error.path = request.getDescription(false).replace("uri=", "");
-
-        logger.warning("Validation Error: " + error.message);
-
+        String message = String.join("; ", errMsg);
+        ErrorResponse error = build(HttpStatus.BAD_REQUEST, "Validation Error", message, request);
+        log.warn("Validation Error: {}", message);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 2. Custom Exception
+    // ── 2. Bad Request (400) ─────────────────────────────────────────────────
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequestException(
+            BadRequestException ex, WebRequest request) {
+
+        ErrorResponse error = build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
+        log.warn("Bad Request: {}", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // ── 3. Resource Not Found (404) ───────────────────────────────────────────
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(
+            ResourceNotFoundException ex, WebRequest request) {
+
+        ErrorResponse error = build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+        log.warn("Not Found: {}", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // ── 4. Token Expired (401) ────────────────────────────────────────────────
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleTokenExpired(
+            TokenExpiredException ex, WebRequest request) {
+
+        ErrorResponse error = build(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage(), request);
+        log.warn("Token Expired: {}", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    // ── 5. Custom Domain Exception (400) ──────────────────────────────────────
+
     @ExceptionHandler(QuantityMeasurementException.class)
     public ResponseEntity<ErrorResponse> handleQuantityException(
-            QuantityMeasurementException ex,
-            WebRequest request) {
+            QuantityMeasurementException ex, WebRequest request) {
 
-        ErrorResponse error = new ErrorResponse();
-        error.timestamp = LocalDateTime.now();
-        error.status = HttpStatus.BAD_REQUEST.value();
-        error.error = "Quantity Measurement Error";
-        error.message = ex.getMessage();
-        error.path = request.getDescription(false).replace("uri=", "");
-
-        logger.warning("Quantity Error: " + ex.getMessage());
-
+        ErrorResponse error = build(HttpStatus.BAD_REQUEST, "Quantity Measurement Error", ex.getMessage(), request);
+        log.warn("Quantity Error: {}", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 3. Arithmetic Exception → 500 Internal Server Error
+    // ── 6. Arithmetic Exception (422) ─────────────────────────────────────────
+
     @ExceptionHandler(ArithmeticException.class)
     public ResponseEntity<ErrorResponse> handleArithmeticException(
-            ArithmeticException ex,
-            WebRequest request) {
+            ArithmeticException ex, WebRequest request) {
 
-        ErrorResponse error = new ErrorResponse();
-        error.timestamp = LocalDateTime.now();
-        error.status = HttpStatus.INTERNAL_SERVER_ERROR.value();
-        error.error = "Internal Server Error";
-        error.message = ex.getMessage();
-        error.path = request.getDescription(false).replace("uri=", "");
-
-        logger.severe("Arithmetic Error: " + ex.getMessage());
-
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        ErrorResponse error = build(HttpStatus.UNPROCESSABLE_ENTITY, "Arithmetic Error", ex.getMessage(), request);
+        log.error("Arithmetic Error: {}", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
-    // 4. Runtime Exception → 400 Bad Request
+    // ── 7. Generic Runtime Exception (400) ───────────────────────────────────
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(
-            RuntimeException ex,
-            WebRequest request) {
+            RuntimeException ex, WebRequest request) {
 
-        ErrorResponse error = new ErrorResponse();
-        error.timestamp = LocalDateTime.now();
-        error.status = HttpStatus.BAD_REQUEST.value();
-        error.error = "Bad Request";
-        error.message = ex.getMessage();
-        error.path = request.getDescription(false).replace("uri=", "");
-
-        logger.warning("Runtime Error: " + ex.getMessage());
-
+        ErrorResponse error = build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
+        log.warn("Runtime Error: {}", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 4. Global Exception → 500 Internal Server Error
+    // ── 8. Catch-All (500) ────────────────────────────────────────────────────
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
-            Exception ex,
-            WebRequest request) {
+            Exception ex, WebRequest request) {
 
-        ErrorResponse error = new ErrorResponse();
-        error.timestamp = LocalDateTime.now();
-        error.status = HttpStatus.INTERNAL_SERVER_ERROR.value();
-        error.error = "Internal Server Error";
-        error.message = ex.getMessage();
-        error.path = request.getDescription(false).replace("uri=", "");
-
-        logger.severe("Global Error: " + ex.getMessage());
-
+        ErrorResponse error = build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage(), request);
+        log.error("Global Error: {}", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

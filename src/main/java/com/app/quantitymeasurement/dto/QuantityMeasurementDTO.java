@@ -1,8 +1,9 @@
-package com.app.quantitymeasurement.model;
+package com.app.quantitymeasurement.dto;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.app.quantitymeasurement.entity.QuantityMeasurementEntity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -102,12 +103,4 @@ public class QuantityMeasurementDTO {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * List<DTO> → List<Entity>
-     */
-    public static List<QuantityMeasurementEntity> toEntityList(List<QuantityMeasurementDTO> dtos) {
-        return dtos.stream()
-                .map(QuantityMeasurementDTO::toEntity)
-                .collect(Collectors.toList());
-    }
 }

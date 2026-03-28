@@ -1,4 +1,4 @@
-package com.app.quantitymeasurement.model;
+package com.app.quantitymeasurement.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
@@ -27,9 +27,9 @@ public class QuantityDTO {
     @NotEmpty(message = "Unit cannot be empty")
     @Schema(example = "FEET", allowableValues = {
             "FEET", "INCHES", "YARDS", "CENTIMETERS",
-            "LITRE", "MILLILITRE", "GALLON",
+            "LITER", "MILLILITER", "GALLON",
             "MILLIGRAM", "GRAM", "KILOGRAM", "POUND", "TONNE",
-            "CELSIUS", "FAHRENHEIT"
+            "CELSIUS", "FAHRENHEIT", "KELVIN"
     })
     private String unit;
 
@@ -80,7 +80,7 @@ public class QuantityDTO {
     }
 
     public enum VolumeUnit {
-        LITRE, MILLILITRE, GALLON
+        LITER, MILLILITER, GALLON
     }
 
     public enum WeightUnit {
@@ -88,6 +88,6 @@ public class QuantityDTO {
     }
 
     public enum TemperatureUnit {
-        CELSIUS, FAHRENHEIT
+        CELSIUS, FAHRENHEIT, KELVIN
     }
 }

@@ -46,7 +46,9 @@ public enum TemperatureUnit implements IMeasurable {
 
     @Override
     public double getConversionFactor() {
-        return 1.0; // Not meaningful for temperature
+        throw new UnsupportedOperationException(
+                "getConversionFactor() is not supported for TemperatureUnit — conversion is non-linear"
+        );
     }
 
     @Override
