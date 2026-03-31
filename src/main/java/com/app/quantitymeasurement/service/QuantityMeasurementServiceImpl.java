@@ -6,6 +6,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.concurrent.TimeUnit;
+import org.springframework.data.redis.core.RedisTemplate;
+
 
 import com.app.quantitymeasurement.dto.QuantityDTO;
 import com.app.quantitymeasurement.dto.QuantityMeasurementDTO;
@@ -33,9 +36,17 @@ import lombok.RequiredArgsConstructor;
 public class QuantityMeasurementServiceImpl implements IQuantityMeasurementService {
 
     private static final double COMPARISON_TOLERANCE = 0.0001;
+    private static final long CACHE_TTL_MINUTES = 10;
+
+    // Cache key prefixes
+    private static final String CACHE_KEY_HISTORY_OPERATION = "history:operation:%s:%s";
+    private static final String CACHE_KEY_HISTORY_TYPE = "history:type:%s:%s";
+    private static final String CACHE_KEY_COUNT_OPERATION = "count:operation:%s:%s";
+    private static final String CACHE_KEY_ERRORS = "history:errors:%s";
 
     private final QuantityMeasurementRepository repository;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -54,6 +65,39 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         }
         return false;
+    }
+
+    // Get current user ID for cache keys
+    private String getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserPrincipal) {
+            return String.valueOf(((UserPrincipal) auth.getPrincipal()).getId());
+        }
+        return "anonymous";
+    }
+
+    // Evict specific cache by key
+    private void evictCache(String key) {
+        redisTemplate.delete(key);
+    }
+
+    // Evict all caches related to a measurement type
+    private void evictCachesForType(String measurementType) {
+        String userId = getCurrentUserId();
+        evictCache(String.format(CACHE_KEY_HISTORY_TYPE, measurementType, userId));
+    }
+
+    // Evict all caches related to an operation
+    private void evictCachesForOperation(String operation) {
+        String userId = getCurrentUserId();
+        evictCache(String.format(CACHE_KEY_HISTORY_OPERATION, operation, userId));
+        evictCache(String.format(CACHE_KEY_COUNT_OPERATION, operation, userId));
+    }
+
+    // Evict error cache
+    private void evictErrorCache() {
+        String userId = getCurrentUserId();
+        evictCache(String.format(CACHE_KEY_ERRORS, userId));
     }
 
     // ================== COMPARE ==================
@@ -78,6 +122,11 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setUser(getCurrentUser());
 
         repository.save(entity);
+        
+        // Invalidate relevant caches
+        evictCachesForOperation("COMPARE");
+        evictCachesForType(q1.getMeasurementType());
+        
         return QuantityMeasurementDTO.from(entity);
     }
 
@@ -105,29 +154,50 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setUser(getCurrentUser());
 
         repository.save(entity);
+        
+        // Invalidate relevant caches
+        evictCachesForOperation("CONVERT");
+        evictCachesForType(quantity.getMeasurementType());
+        
         return QuantityMeasurementDTO.from(entity);
     }
 
     // ================== ADD ==================
     @Override
     public QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2) {
-        return performArithmetic(q1, q2, null, "ADD", Double::sum);
+        QuantityMeasurementDTO result = performArithmetic(q1, q2, null, "ADD", Double::sum);
+        // Invalidate relevant caches
+        evictCachesForOperation("ADD");
+        evictCachesForType(q1.getMeasurementType());
+        return result;
     }
 
     @Override
     public QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2, QuantityDTO target) {
-        return performArithmetic(q1, q2, target, "ADD", Double::sum);
+        QuantityMeasurementDTO result = performArithmetic(q1, q2, target, "ADD", Double::sum);
+        // Invalidate relevant caches
+        evictCachesForOperation("ADD");
+        evictCachesForType(q1.getMeasurementType());
+        return result;
     }
 
     // ================== SUBTRACT ==================
     @Override
     public QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2) {
-        return performArithmetic(q1, q2, null, "SUBTRACT", (a, b) -> a - b);
+        QuantityMeasurementDTO result = performArithmetic(q1, q2, null, "SUBTRACT", (a, b) -> a - b);
+        // Invalidate relevant caches
+        evictCachesForOperation("SUBTRACT");
+        evictCachesForType(q1.getMeasurementType());
+        return result;
     }
 
     @Override
     public QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2, QuantityDTO target) {
-        return performArithmetic(q1, q2, target, "SUBTRACT", (a, b) -> a - b);
+        QuantityMeasurementDTO result = performArithmetic(q1, q2, target, "SUBTRACT", (a, b) -> a - b);
+        // Invalidate relevant caches
+        evictCachesForOperation("SUBTRACT");
+        evictCachesForType(q1.getMeasurementType());
+        return result;
     }
 
     // ================== MULTIPLY ==================
@@ -156,6 +226,11 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setUser(getCurrentUser());
 
         repository.save(entity);
+        
+        // Invalidate relevant caches
+        evictCachesForOperation("MULTIPLY");
+        evictCachesForType(q.getMeasurementType());
+        
         return QuantityMeasurementDTO.from(entity);
     }
 
@@ -188,6 +263,11 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setUser(getCurrentUser());
 
         repository.save(entity);
+        
+        // Invalidate relevant caches
+        evictCachesForOperation("DIVIDE");
+        evictCachesForType(q.getMeasurementType());
+        
         return QuantityMeasurementDTO.from(entity);
     }
 
@@ -228,46 +308,131 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         entity.setUser(getCurrentUser());
 
         repository.save(entity);
+        
+        // Invalidate relevant caches
+        evictCachesForOperation("DIVIDE");
+        evictCachesForType(q1.getMeasurementType());
+        
         return QuantityMeasurementDTO.from(entity);
     }
 
     // ================== HISTORY ==================
     @Override
     public List<QuantityMeasurementDTO> getOperationHistory(String operation) {
-        if (isAdmin()) {
-            return QuantityMeasurementDTO.fromList(repository.findByOperation(operation));
+        String userId = getCurrentUserId();
+        String cacheKey = String.format(CACHE_KEY_HISTORY_OPERATION, operation, userId);
+        
+        // Try to get from Redis cache
+        @SuppressWarnings("unchecked")
+        List<QuantityMeasurementDTO> cachedResult = 
+            (List<QuantityMeasurementDTO>) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedResult != null) {
+            return cachedResult;
         }
-        return QuantityMeasurementDTO.fromList(
-                repository.findByUserAndOperation(getCurrentUser(), operation)
-        );
+        
+        // Cache miss - fetch from database
+        List<QuantityMeasurementDTO> result;
+        if (isAdmin()) {
+            result = QuantityMeasurementDTO.fromList(repository.findByOperation(operation));
+        } else {
+            result = QuantityMeasurementDTO.fromList(
+                    repository.findByUserAndOperation(getCurrentUser(), operation)
+            );
+        }
+        
+        // Store in Redis with TTL
+        if (result != null && !result.isEmpty()) {
+            redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        }
+        
+        return result;
     }
 
     @Override
     public List<QuantityMeasurementDTO> getMeasurementsByType(String type) {
-        if (isAdmin()) {
-            return QuantityMeasurementDTO.fromList(repository.findByThisMeasurementType(type));
+        String userId = getCurrentUserId();
+        String cacheKey = String.format(CACHE_KEY_HISTORY_TYPE, type, userId);
+        
+        // Try to get from Redis cache
+        @SuppressWarnings("unchecked")
+        List<QuantityMeasurementDTO> cachedResult = 
+            (List<QuantityMeasurementDTO>) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedResult != null) {
+            return cachedResult;
         }
-        return QuantityMeasurementDTO.fromList(
-                repository.findByUserAndThisMeasurementType(getCurrentUser(), type)
-        );
+        
+        // Cache miss - fetch from database
+        List<QuantityMeasurementDTO> result;
+        if (isAdmin()) {
+            result = QuantityMeasurementDTO.fromList(repository.findByThisMeasurementType(type));
+        } else {
+            result = QuantityMeasurementDTO.fromList(
+                    repository.findByUserAndThisMeasurementType(getCurrentUser(), type)
+            );
+        }
+        
+        // Store in Redis with TTL
+        if (result != null && !result.isEmpty()) {
+            redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        }
+        
+        return result;
     }
 
     @Override
     public long getOperationCount(String operation) {
-        if (isAdmin()) {
-            return repository.countByOperationAndIsErrorFalse(operation);
+        String userId = getCurrentUserId();
+        String cacheKey = String.format(CACHE_KEY_COUNT_OPERATION, operation, userId);
+        
+        // Try to get from Redis cache
+        Long cachedCount = (Long) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedCount != null) {
+            return cachedCount;
         }
-        return repository.countByUserAndOperationAndIsErrorFalse(getCurrentUser(), operation);
+        
+        // Cache miss - fetch from database
+        long count;
+        if (isAdmin()) {
+            count = repository.countByOperationAndIsErrorFalse(operation);
+        } else {
+            count = repository.countByUserAndOperationAndIsErrorFalse(getCurrentUser(), operation);
+        }
+        
+        // Store in Redis with TTL
+        redisTemplate.opsForValue().set(cacheKey, count, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        
+        return count;
     }
 
     @Override
     public List<QuantityMeasurementDTO> getErrorHistory() {
-        if (isAdmin()) {
-            return QuantityMeasurementDTO.fromList(repository.findByIsErrorTrue());
+        String userId = getCurrentUserId();
+        String cacheKey = String.format(CACHE_KEY_ERRORS, userId);
+        
+        // Try to get from Redis cache
+        @SuppressWarnings("unchecked")
+        List<QuantityMeasurementDTO> cachedResult = 
+            (List<QuantityMeasurementDTO>) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedResult != null) {
+            return cachedResult;
         }
-        return QuantityMeasurementDTO.fromList(
-                repository.findByUserAndIsErrorTrue(getCurrentUser())
-        );
+        
+        // Cache miss - fetch from database
+        List<QuantityMeasurementDTO> result;
+        if (isAdmin()) {
+            result = QuantityMeasurementDTO.fromList(repository.findByIsErrorTrue());
+        } else {
+            result = QuantityMeasurementDTO.fromList(
+                    repository.findByUserAndIsErrorTrue(getCurrentUser())
+            );
+        }
+        
+        // Store in Redis with TTL
+        if (result != null && !result.isEmpty()) {
+            redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        }
+        
+        return result;
     }
 
     // ================== HELPER METHODS ==================

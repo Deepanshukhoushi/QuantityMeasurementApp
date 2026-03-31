@@ -200,7 +200,8 @@ public class AuthServiceImpl implements AuthService {
             String jwt = bearerToken.substring(7);
             if (tokenProvider.validateToken(jwt)) {
                 String jti = tokenProvider.getJtiFromToken(jwt);
-                tokenBlacklistService.blacklist(jti);
+                long expirationMs = tokenProvider.getTokenExpirationMs(jwt);
+                tokenBlacklistService.blacklist(jti, expirationMs);
             }
         }
         refreshTokenService.deleteByUserId(userId);
