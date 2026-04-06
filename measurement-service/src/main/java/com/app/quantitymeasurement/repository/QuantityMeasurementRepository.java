@@ -1,0 +1,48 @@
+package com.app.quantitymeasurement.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.app.quantitymeasurement.entity.QuantityMeasurementEntity;
+
+/**
+ * Repository interface for QuantityMeasurementEntity.
+ * Extends JpaRepository to provide standard CRUD operations and 
+ * custom queries for measurement history and statistics.
+ * 
+ * Refactored to use Long userId instead of User entity for stateless microservice communication.
+ */
+public interface QuantityMeasurementRepository 
+        extends JpaRepository<QuantityMeasurementEntity, Long> {
+
+    // Find all measurements by operation type
+    List<QuantityMeasurementEntity> findByOperation(String operation);
+    List<QuantityMeasurementEntity> findByUserIdAndOperation(Long userId, String operation);
+
+    // Find all measurements by measurement type
+    List<QuantityMeasurementEntity> findByThisMeasurementType(String measurementType);
+    List<QuantityMeasurementEntity> findByUserIdAndThisMeasurementType(Long userId, String measurementType);
+
+    // Find measurements created after a specific date
+    List<QuantityMeasurementEntity> findByCreatedAtAfter(LocalDateTime date);
+    List<QuantityMeasurementEntity> findByUserIdAndCreatedAtAfter(Long userId, LocalDateTime date);
+
+    // Custom JPQL query for successful operations
+    @Query("SELECT e FROM QuantityMeasurementEntity e WHERE e.operation = :operation AND e.isError = false")
+    List<QuantityMeasurementEntity> findSuccessfulOperations(@Param("operation") String operation);
+
+    @Query("SELECT e FROM QuantityMeasurementEntity e WHERE e.userId = :userId AND e.operation = :operation AND e.isError = false")
+    List<QuantityMeasurementEntity> findSuccessfulOperationsByUserId(@Param("userId") Long userId, @Param("operation") String operation);
+
+    // Count successful operations
+    long countByOperationAndIsErrorFalse(String operation);
+    long countByUserIdAndOperationAndIsErrorFalse(Long userId, String operation);
+
+    // Find measurements with errors
+    List<QuantityMeasurementEntity> findByIsErrorTrue();
+    List<QuantityMeasurementEntity> findByUserIdAndIsErrorTrue(Long userId);
+}
