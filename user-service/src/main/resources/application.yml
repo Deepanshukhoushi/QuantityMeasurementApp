@@ -1,0 +1,82 @@
+server:
+    port: ${SERVER_PORT:8082}
+
+spring:
+    application:
+        name: user-service
+
+    datasource:
+        url: jdbc:mysql://localhost:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        username: ${DB_USERNAME:root}
+        password: ${DB_PASSWORD:Deepanshu}
+        hikari:
+            maximum-pool-size: 10
+            minimum-idle: 2
+            connection-timeout: 30000
+
+    jpa:
+        database-platform: org.hibernate.dialect.MySQL8Dialect
+        hibernate:
+            ddl-auto: ${JPA_DDL_AUTO:update}
+        open-in-view: false
+        show-sql: false
+        properties:
+            hibernate:
+                jdbc:
+                    time_zone: UTC
+
+    h2:
+        console:
+            enabled: ${H2_CONSOLE_ENABLED:false}
+            path: /h2-console
+
+    boot:
+        admin:
+            client:
+                url: http://localhost:9090
+                instance:
+                    prefer-ip: true
+                username: admin
+                password: "admin123"
+
+    cloud:
+        loadbalancer:
+            retry:
+                enabled: true
+
+eureka:
+    client:
+        service-url:
+            defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+        fetch-registry: true
+        register-with-eureka: true
+        healthcheck:
+            enabled: true
+        registry-fetch-interval-seconds: 10
+        initial-instance-info-replication-interval-seconds: 10
+        eureka-server-connect-timeout-seconds: 5
+        eureka-server-read-timeout-seconds: 8
+
+    instance:
+        prefer-ip-address: true
+        lease-renewal-interval-in-seconds: 10
+        lease-expiration-duration-in-seconds: 30
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
+            base-path: /actuator
+    endpoint:
+        health:
+            show-details: always
+    info:
+        env:
+            enabled: true
+
+logging:
+    level:
+        com.quantitymeasurement.user_service: INFO
+        org.springframework.web: INFO
