@@ -25,6 +25,7 @@ import lombok.Data;
  * Stores core identity details, social login provider info, and auth credentials.
  */
 @Entity
+@Data
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(columnNames = "email")
 })
@@ -71,36 +72,6 @@ public class User {
 
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
-
-    // Getters and Seters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public Boolean getEmailVerified() { return emailVerified; }
-    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public AuthProvider getProvider() { return provider; }
-    public void setProvider(AuthProvider provider) { this.provider = provider; }
-    public String getProviderId() { return providerId; }
-    public void setProviderId(String providerId) { this.providerId = providerId; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public LocalDateTime getLastPasswordResetDate() { return lastPasswordResetDate; }
-    public void setLastPasswordResetDate(LocalDateTime lastPasswordResetDate) { this.lastPasswordResetDate = lastPasswordResetDate; }
-    public String getResetPasswordToken() { return resetPasswordToken; }
-    public void setResetPasswordToken(String resetPasswordToken) { this.resetPasswordToken = resetPasswordToken; }
-    public LocalDateTime getResetPasswordTokenExpiry() { return resetPasswordTokenExpiry; }
-    public void setResetPasswordTokenExpiry(LocalDateTime resetPasswordTokenExpiry) { this.resetPasswordTokenExpiry = resetPasswordTokenExpiry; }
 
     @PrePersist
     protected void onCreate() {

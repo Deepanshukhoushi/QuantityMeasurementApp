@@ -2,12 +2,6 @@ package com.app.quantitymeasurement.security;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Optional;
-
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +11,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.app.quantitymeasurement.exception.BadRequestException;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Handler for successful OAuth2 login. Generates a JWT and redirects back to the frontend.

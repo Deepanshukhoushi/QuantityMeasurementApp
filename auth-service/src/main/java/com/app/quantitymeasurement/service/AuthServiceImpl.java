@@ -1,6 +1,9 @@
 package com.app.quantitymeasurement.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,17 +19,11 @@ import com.app.quantitymeasurement.dto.SignUpRequest;
 import com.app.quantitymeasurement.entity.User;
 import com.app.quantitymeasurement.enums.AuthProvider;
 import com.app.quantitymeasurement.exception.BadRequestException;
+import com.app.quantitymeasurement.exception.ResourceNotFoundException;
 import com.app.quantitymeasurement.repository.UserRepository;
 import com.app.quantitymeasurement.security.JwtTokenProvider;
 
-import java.time.LocalDateTime;
-import com.app.quantitymeasurement.exception.ResourceNotFoundException;
-import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import java.util.Date;
 
 /**
  * Implementation of AuthService.

@@ -14,17 +14,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
-import jakarta.servlet.http.HttpServletResponse;
-import com.app.quantitymeasurement.security.JwtAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.app.quantitymeasurement.security.CustomOAuth2UserService;
-import com.app.quantitymeasurement.security.CustomUserDetailsService;
+import com.app.quantitymeasurement.security.JwtAuthenticationFilter;
 import com.app.quantitymeasurement.security.OAuth2AuthenticationFailureHandler;
 import com.app.quantitymeasurement.security.OAuth2AuthenticationSuccessHandler;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Security Configuration for the Auth Service.
@@ -33,9 +32,6 @@ import com.app.quantitymeasurement.security.OAuth2AuthenticationSuccessHandler;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
 
     @Autowired
     private CustomOAuth2UserService customOAuth2UserService;

@@ -11,18 +11,22 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import com.app.quantitymeasurement.entity.User;
 
-/**
- * Implementation of both {@link UserDetails} and {@link OAuth2User}.
- */
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserPrincipal implements OAuth2User, UserDetails {
 
-    private final Long id;
-    private final String email;
-    private final String password;
-    private final String firstName;
-    private final String lastName;
-    private final String imageUrl;
-    private final Collection<? extends GrantedAuthority> authorities;
+    private Long id;
+    private String email;
+    private String password;
+    private String firstName;
+    private String lastName;
+    private String imageUrl;
+    private Collection<? extends GrantedAuthority> authorities;
     private Map<String, Object> attributes;
 
     public UserPrincipal(User user) {
@@ -32,7 +36,9 @@ public class UserPrincipal implements OAuth2User, UserDetails {
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.imageUrl = user.getImageUrl();
-        this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        this.authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_USER")
+        );
     }
 
     public static UserPrincipal create(User user, Map<String, Object> attributes) {
@@ -41,29 +47,34 @@ public class UserPrincipal implements OAuth2User, UserDetails {
         return userPrincipal;
     }
 
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
-    public String getImageUrl() { return imageUrl; }
+    // Spring Security required methods
+    @Override
+    public String getUsername() {
+        return email;
+    }
 
     @Override
-    public String getUsername() { return email; }
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
     @Override
-    public String getPassword() { return password; }
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() { return authorities; }
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
     @Override
-    public boolean isAccountNonExpired() { return true; }
+    public boolean isEnabled() {
+        return true;
+    }
+
     @Override
-    public boolean isAccountNonLocked() { return true; }
-    @Override
-    public boolean isCredentialsNonExpired() { return true; }
-    @Override
-    public boolean isEnabled() { return true; }
-    @Override
-    public Map<String, Object> getAttributes() { return attributes; }
-    public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }
-    @Override
-    public String getName() { return String.valueOf(id); }
+    public String getName() {
+        return String.valueOf(id);
+    }
 }
