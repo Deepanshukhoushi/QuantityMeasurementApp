@@ -1,7 +1,6 @@
 package com.app.quantitymeasurement.security;
 
-import java.security.Key;
-import java.util.Date;
+import javax.crypto.SecretKey;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ public class JwtTokenProvider {
     @Value("${app.auth.token-secret}")
     private String tokenSecret;
 
-    private Key key;
+    private SecretKey key;
 
     @PostConstruct
     public void init() {
@@ -38,17 +37,17 @@ public class JwtTokenProvider {
 
     public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(key)
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
 
         return Long.parseLong(claims.getSubject());
     }
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(key).build().parseClaimsJws(authToken);
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken);
             return true;
         } catch (SignatureException ex) {
             logger.error("Invalid JWT signature");

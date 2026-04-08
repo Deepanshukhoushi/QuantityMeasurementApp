@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.app.quantitymeasurement.dto.QuantityInputDTO;
-import com.app.quantitymeasurement.dto.QuantityDTO;
 import com.app.quantitymeasurement.dto.QuantityMeasurementDTO;
 import com.app.quantitymeasurement.exception.QuantityMeasurementException;
 import com.app.quantitymeasurement.service.IQuantityMeasurementService;

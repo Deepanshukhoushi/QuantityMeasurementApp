@@ -12,7 +12,6 @@ import com.app.quantitymeasurement.dto.QuantityMeasurementDTO;
 import com.app.quantitymeasurement.entity.QuantityMeasurementEntity;
 import com.app.quantitymeasurement.repository.QuantityMeasurementRepository;
 import com.app.quantitymeasurement.unit.IMeasurable;
-
 import com.app.quantitymeasurement.unit.LengthUnit;
 import com.app.quantitymeasurement.unit.TemperatureUnit;
 import com.app.quantitymeasurement.unit.VolumeUnit;
@@ -33,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 public class QuantityMeasurementServiceImpl implements IQuantityMeasurementService {
 
     private static final double COMPARISON_TOLERANCE = 0.0001;
-    private static final long CACHE_TTL_MINUTES = 10;
 
     // Cache key prefixes
     private static final String CACHE_KEY_HISTORY_OPERATION = "history:operation:%s:%s";
@@ -104,9 +102,33 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
 
 
     // Caching disabled (Redis not available)
-    private void evictCache(String key) {}
-    private void evictCachesForType(String measurementType) {}
-    private void evictCachesForOperation(String operation) {}
+    private void evictCache(String key) {
+        log.debug("Cache eviction skipped (Redis not available) for key: {}", key);
+    }
+
+    private void evictCachesForType(String measurementType) {
+        String userId = getCurrentUserId();
+        evictCache(String.format(CACHE_KEY_HISTORY_TYPE, userId, measurementType));
+        evictCache(String.format(CACHE_KEY_ERRORS, userId));
+
+        if (isAdmin()) {
+            evictCache(String.format(CACHE_KEY_HISTORY_TYPE, "all", measurementType));
+            evictCache(String.format(CACHE_KEY_ERRORS, "all"));
+        }
+    }
+
+    private void evictCachesForOperation(String operation) {
+        String userId = getCurrentUserId();
+        evictCache(String.format(CACHE_KEY_HISTORY_OPERATION, userId, operation));
+        evictCache(String.format(CACHE_KEY_COUNT_OPERATION, userId, operation));
+        evictCache(String.format(CACHE_KEY_ERRORS, userId));
+
+        if (isAdmin()) {
+            evictCache(String.format(CACHE_KEY_HISTORY_OPERATION, "all", operation));
+            evictCache(String.format(CACHE_KEY_COUNT_OPERATION, "all", operation));
+            evictCache(String.format(CACHE_KEY_ERRORS, "all"));
+        }
+    }
 
     // ================== COMPARE ==================
     @Override
