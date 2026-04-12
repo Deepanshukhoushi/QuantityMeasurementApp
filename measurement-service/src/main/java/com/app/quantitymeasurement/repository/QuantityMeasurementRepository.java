@@ -45,4 +45,8 @@ public interface QuantityMeasurementRepository
     // Find measurements with errors
     List<QuantityMeasurementEntity> findByIsErrorTrue();
     List<QuantityMeasurementEntity> findByUserIdAndIsErrorTrue(Long userId);
+
+    // Delete measurements by type
+    void deleteByThisMeasurementType(String measurementType);
+    void deleteByUserIdAndThisMeasurementType(Long userId, String measurementType);
 }

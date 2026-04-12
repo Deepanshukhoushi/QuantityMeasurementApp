@@ -168,11 +168,18 @@ public class QuantityMeasurementController {
 		return ResponseEntity.ok(service.getOperationHistory(operation));
 	}
 
-	// ===================== HISTORY BY TYPE =====================
 	@GetMapping("/history/type/{type}")
 	public ResponseEntity<List<?>> getHistoryByType(@PathVariable String type) {
 
 		return ResponseEntity.ok(service.getMeasurementsByType(type));
+	}
+
+	// ===================== CLEAR HISTORY BY TYPE =====================
+	@org.springframework.web.bind.annotation.DeleteMapping("/history/type/{type}")
+	public ResponseEntity<Void> clearHistoryByType(@PathVariable String type) {
+		log.info("Received request to clear history for type: {}", type);
+		service.clearHistoryByType(type);
+		return ResponseEntity.noContent().build();
 	}
 
 	// ===================== COUNT =====================

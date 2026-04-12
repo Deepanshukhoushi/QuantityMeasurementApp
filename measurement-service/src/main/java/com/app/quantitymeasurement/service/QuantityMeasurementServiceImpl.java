@@ -436,6 +436,33 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         return result;
     }
 
+    @Override
+    @Transactional
+    public void clearHistoryByType(String measurementType) {
+        log.info("clearHistoryByType() called for type: {}", measurementType);
+        
+        if (isAdmin()) {
+            log.info("Admin clearing all history for type: {}", measurementType);
+            repository.deleteByThisMeasurementType(measurementType);
+        } else {
+            Long userId = getCurrentUserIdRaw();
+            log.info("User {} clearing history for type: {}", userId, measurementType);
+            if (userId != null) {
+                repository.deleteByUserIdAndThisMeasurementType(userId, measurementType);
+            }
+        }
+        
+        // Invalidate relevant caches
+        evictCachesForType(measurementType);
+        // Also evict general operation caches as we don't know which operations were deleted
+        evictCachesForOperation("CONVERT");
+        evictCachesForOperation("COMPARE");
+        evictCachesForOperation("ADD");
+        evictCachesForOperation("SUBTRACT");
+        evictCachesForOperation("MULTIPLY");
+        evictCachesForOperation("DIVIDE");
+    }
+
     // ================== HELPER METHODS ==================
 
     private IMeasurable getUnitEnum(String measurementType, String unitStr) {

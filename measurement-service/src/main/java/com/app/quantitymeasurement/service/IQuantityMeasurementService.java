@@ -50,4 +50,7 @@ public interface IQuantityMeasurementService {
 
     // Get error history
     List<QuantityMeasurementDTO> getErrorHistory();
+
+    // Clear history by type
+    void clearHistoryByType(String measurementType);
 }
