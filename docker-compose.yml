@@ -1,0 +1,122 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: qm-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Deepanshu}
+      MYSQL_DATABASE: quantitymeasurement_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - qm-network
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+    container_name: qm-eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - qm-network
+
+  admin-server:
+    build:
+      context: ./admin-server
+    container_name: qm-admin-server
+    depends_on:
+      - eureka-server
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      SERVER_ADDRESS: 0.0.0.0
+    ports:
+      - "9090:9090"
+    networks:
+      - qm-network
+
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: qm-auth-service
+    depends_on:
+      - mysql
+      - eureka-server
+      - admin-server
+    env_file:
+      - .env
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVER_ADDRESS: 0.0.0.0
+    ports:
+      - "8083:8083"
+    networks:
+      - qm-network
+
+  user-service:
+    build:
+      context: ./user-service
+    container_name: qm-user-service
+    depends_on:
+      - mysql
+      - eureka-server
+      - admin-server
+    env_file:
+      - .env
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVER_ADDRESS: 0.0.0.0
+    ports:
+      - "8082:8082"
+    networks:
+      - qm-network
+
+  measurement-service:
+    build:
+      context: ./measurement-service
+    container_name: qm-measurement-service
+    depends_on:
+      - mysql
+      - eureka-server
+      - admin-server
+    env_file:
+      - .env
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVER_ADDRESS: 0.0.0.0
+    ports:
+      - "8081:8081"
+    networks:
+      - qm-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: qm-api-gateway
+    depends_on:
+      - eureka-server
+      - auth-service
+      - user-service
+      - measurement-service
+      - admin-server
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
+      SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
+      SERVER_ADDRESS: 0.0.0.0
+    ports:
+      - "8080:8080"
+    networks:
+      - qm-network
+
+networks:
+  qm-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
