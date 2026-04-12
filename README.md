@@ -885,3 +885,45 @@ spring:
 👉 [UC18 – Google Authentication and User Management](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC18-Google-Authentication-and-User-Management)
 
 ---
+
+## 🧩 UC21 – Microservices Architecture Implementation
+
+## Description
+UC21 evolves the application from a single deployable Spring Boot backend into a **microservices-based system**.  
+Core responsibilities are split into independently deployable services with centralized discovery and routing.
+
+## Objective
+Enable modular development, independent scaling, and resilient service communication by introducing service registry, gateway routing, and domain-specific services.
+
+## Microservices Introduced
+- **Eureka Server (`:8761`)** – Service discovery and registration  
+- **API Gateway (`:8080`)** – Single entry point, request routing, cross-cutting filters  
+- **Measurement Service (`:8081`)** – Quantity conversion/business logic APIs  
+- **User Service (`:8082`)** – User profile/auth/history responsibilities  
+
+## Main Flow
+1. Client sends request to API Gateway  
+2. Gateway resolves target service via Eureka  
+3. Request is routed to Measurement/User service  
+4. Services process business logic independently  
+5. Optional inter-service communication occurs via declarative clients  
+6. Response is returned through Gateway to client  
+
+## Postconditions
+- Monolithic responsibilities are split across focused services  
+- Services can be built, deployed, and scaled independently  
+- Discovery-based routing removes hardcoded service endpoints  
+- Foundation is ready for resilience, observability, and containerized deployment  
+
+## Key Concepts
+- Microservices decomposition  
+- Service discovery (Netflix Eureka)  
+- API Gateway pattern (Spring Cloud Gateway)  
+- Inter-service communication (OpenFeign style integration)  
+- Independent persistence and service boundaries  
+- Cloud-native scalability and fault isolation  
+
+🔗 _Code Link:_ 
+👉 [UC21 – Microservices Architecture](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC21-microservices-architecture)
+
+---
