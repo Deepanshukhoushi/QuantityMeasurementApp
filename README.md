@@ -927,3 +927,129 @@ Enable modular development, independent scaling, and resilient service communica
 👉 [UC21 – Microservices Architecture](https://github.com/Deepanshukhoushi/QuantityMeasurementApp/tree/feature/UC21-microservices-architecture)
 
 ---
+
+## 🐳 Docker Guide (Implemented for this App)
+
+This repo now includes Docker support for:
+- `eureka-server` (`8761`)
+- `admin-server` (`9090`)
+- `api-gateway` (`8080`)
+- `measurement-service` (`8081`)
+- `user-service` (`8082`)
+- `auth-service` (`8083`)
+- `mysql` (`3306`)
+
+Added files:
+- `docker-compose.yml` (root)
+- `Dockerfile` in each service folder above
+
+### Useful Docker Commands
+
+```bash
+docker ps                         # running containers only
+docker ps -a                      # all containers (running + stopped)
+docker stop <container_id>        # stop running container
+docker rm <container_id>          # delete stopped container
+
+docker run -d -p 8080:80 nginx    # run nginx in background
+# run = create + start container
+# -d  = detached mode
+# -p  = host:container port map
+
+docker images                     # list images
+docker rmi <image_id>             # delete image
+docker system prune -a            # remove unused images/containers/networks
+docker logs <container_id>        # inspect container logs
+```
+
+### Things to Check Before Docker Run/Deploy
+
+1. Verify `application.yml/properties` (DB URL, ports, service URLs).
+2. Ensure Java version in `pom.xml` matches Docker image (`Java 17`).
+3. Build JARs before image build.
+4. Verify Dockerfiles (JAR copy path + entrypoint).
+5. Use `docker logs <container_id>` for troubleshooting.
+6. Validate port mapping while running containers.
+7. Rebuild images after code changes.
+8. Ensure service binding/networking (`SERVER_ADDRESS=0.0.0.0` if needed).
+
+---
+
+## ▶️ Run This Microservices App Locally with Docker
+
+### Step 1: Build all service JARs
+
+```bash
+mvn -f eureka-server/pom.xml clean package -DskipTests
+mvn -f admin-server/pom.xml clean package -DskipTests
+mvn -f api-gateway/pom.xml clean package -DskipTests
+mvn -f measurement-service/pom.xml clean package -DskipTests
+mvn -f user-service/pom.xml clean package -DskipTests
+mvn -f auth-service/pom.xml clean package -DskipTests
+```
+
+### Step 2: Build and start containers
+
+```bash
+docker compose up --build -d
+```
+
+### Step 3: Verify containers
+
+```bash
+docker ps
+```
+
+### Step 4: Test endpoints
+
+- API Gateway: `http://localhost:8080`
+- Eureka Dashboard: `http://localhost:8761`
+- Spring Boot Admin: `http://localhost:9090`
+
+### Step 5: Stop all containers
+
+```bash
+docker compose down
+```
+
+To remove volumes too:
+
+```bash
+docker compose down -v
+```
+
+---
+
+## ☁️ EC2 Deployment with Docker (Quick Steps)
+
+1. Launch EC2 (Amazon Linux, t2.micro, 8–20 GB).
+2. Open Security Group ports: `22`, `8080` (and others if needed).
+3. Install Docker:
+
+```bash
+sudo yum update -y
+sudo yum install docker -y
+sudo service docker start
+sudo usermod -aG docker ec2-user
+docker --version
+```
+
+4. Push image(s) to Docker Hub:
+
+```bash
+docker tag qm-api-gateway <dockerhub-username>/qm-api-gateway:latest
+docker push <dockerhub-username>/qm-api-gateway:latest
+```
+
+5. On EC2, pull and run:
+
+```bash
+docker pull <dockerhub-username>/qm-api-gateway:latest
+docker run -d -p 8080:8080 <dockerhub-username>/qm-api-gateway:latest
+```
+
+6. Access app:
+
+`http://<ec2-public-ip>:8080`
+
+
