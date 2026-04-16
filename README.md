@@ -1053,3 +1053,36 @@ docker run -d -p 8080:8080 <dockerhub-username>/qm-api-gateway:latest
 `http://<ec2-public-ip>:8080`
 
 
+
+---
+
+## ?? Production Deployment (EC2 + Docker)
+
+To deploy the Quantity Measurement App in a production environment (such as AWS EC2 using Docker), ensure the following environment variables are correctly configured in your container environment or .env file. 
+
+### Core Configuration
+- **SPRING_PROFILES_ACTIVE**: Set to prod to enable production configurations and startup validation.
+- **SERVER_PORT**: The port the service will listen on (default: 8080 for API Gateway, 8083 for Auth).
+
+### Security & CORS
+- **APP_OAUTH2_REDIRECT_URI**: The authorized redirect URI for Google OAuth2 (e.g., https://quantitymeasurementapp-frontend-iibq.onrender.com/oauth2/redirect). **Mandatory in production.**
+- **APP_CORS_ALLOWED_ORIGINS**: Comma-separated list of allowed origins (e.g., https://quantitymeasurementapp-frontend-iibq.onrender.com). **Mandatory in production.**
+- **APP_AUTH_TOKEN_SECRET**: A secure, long string (at least 32 bytes) used to sign JWT tokens.
+
+### Database & Persistence
+- **DB_URL**: The JDBC connection string for your production MySQL database (e.g., jdbc:mysql://db-instance-address:3306/quantity_db).
+- **DB_USERNAME**: Production database username.
+- **DB_PASSWORD**: Production database password.
+- **REDIS_HOST**: Hostname of your Redis instance for token blacklisting.
+- **REDIS_PORT**: Port of your Redis instance (default: 6379).
+
+### Service Discovery & Integration
+- **EUREKA_SERVER_URL**: The URL of your Eureka Discovery Server (e.g., http://eureka-server:8761/eureka/).
+- **GOOGLE_CLIENT_ID**: Your Google Cloud Console OAuth2 Client ID.
+- **GOOGLE_CLIENT_SECRET**: Your Google Cloud Console OAuth2 Client Secret.
+- **MAIL_USERNAME**: SMTP username for email services (Reset Password).
+- **MAIL_PASSWORD**: SMTP password or App Password.
+
+### Startup Validation
+Each service performs a **Startup Validation** check in the prod profile. The application will **fail to start** if the APP_OAUTH2_REDIRECT_URI or APP_CORS_ALLOWED_ORIGINS are missing or set to localhost values.
+

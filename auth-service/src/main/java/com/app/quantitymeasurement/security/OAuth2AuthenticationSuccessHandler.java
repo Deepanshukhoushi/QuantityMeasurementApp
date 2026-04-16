@@ -28,6 +28,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Value("${app.oauth2.redirectUri}")
     private String authorizedRedirectUri;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         String targetUrl = determineTargetUrl(request, response, authentication);
@@ -43,6 +46,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         String targetUrl = authorizedRedirectUri;
+
+        // Fail-fast logic for production
+        if (targetUrl == null || targetUrl.isEmpty() || targetUrl.contains("localhost")) {
+            if (!activeProfile.contains("dev")) {
+                throw new BadRequestException("Potential security risk: OAuth2 Redirect URI is misconfigured for " + activeProfile + " profile. Localhost or empty URI is not allowed.");
+            }
+        }
 
         if(!isAuthorizedRedirectUri(targetUrl)) {
             throw new BadRequestException("Unauthorized Redirect URI");
@@ -60,10 +70,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private boolean isAuthorizedRedirectUri(String uri) {
-        URI clientRedirectUri = URI.create(uri);
-        URI authorizedUri = URI.create(authorizedRedirectUri);
+        if (uri == null || uri.isEmpty()) return false;
+        
+        try {
+            URI clientRedirectUri = URI.create(uri);
+            URI authorizedUri = URI.create(authorizedRedirectUri);
 
-        return authorizedUri.getHost().equalsIgnoreCase(clientRedirectUri.getHost())
-                && authorizedUri.getPort() == clientRedirectUri.getPort();
+            return authorizedUri.getHost().equalsIgnoreCase(clientRedirectUri.getHost())
+                    && authorizedUri.getPort() == clientRedirectUri.getPort();
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
