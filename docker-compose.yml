@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: qm-mysql
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Deepanshu}
       MYSQL_DATABASE: quantitymeasurement_db
@@ -9,6 +10,25 @@ services:
       - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./data/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+    networks:
+      - qm-network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: qm-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - qm-network
 
@@ -16,8 +36,13 @@ services:
     build:
       context: ./eureka-server
     container_name: qm-eureka-server
+    restart: always
     ports:
       - "8761:8761"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -25,13 +50,19 @@ services:
     build:
       context: ./admin-server
     container_name: qm-admin-server
+    restart: always
     depends_on:
-      - eureka-server
+      eureka-server:
+        condition: service_started
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SERVER_ADDRESS: 0.0.0.0
     ports:
       - "9090:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -39,19 +70,26 @@ services:
     build:
       context: ./auth-service
     container_name: qm-auth-service
+    restart: always
     depends_on:
-      - mysql
-      - eureka-server
-      - admin-server
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     env_file:
       - .env
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false
       SERVER_ADDRESS: 0.0.0.0
     ports:
       - "8083:8083"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -59,19 +97,26 @@ services:
     build:
       context: ./user-service
     container_name: qm-user-service
+    restart: always
     depends_on:
-      - mysql
-      - eureka-server
-      - admin-server
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     env_file:
       - .env
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false
       SERVER_ADDRESS: 0.0.0.0
     ports:
       - "8082:8082"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -79,19 +124,29 @@ services:
     build:
       context: ./measurement-service
     container_name: qm-measurement-service
+    restart: always
     depends_on:
-      - mysql
-      - eureka-server
-      - admin-server
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     env_file:
       - .env
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?useSSL=false
+      SPRING_REDIS_HOST: redis
       SERVER_ADDRESS: 0.0.0.0
     ports:
       - "8081:8081"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -99,18 +154,22 @@ services:
     build:
       context: ./api-gateway
     container_name: qm-api-gateway
+    restart: always
     depends_on:
-      - eureka-server
-      - auth-service
-      - user-service
-      - measurement-service
-      - admin-server
+      eureka-server:
+        condition: service_started
+    env_file:
+      - .env
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_BOOT_ADMIN_CLIENT_URL: http://admin-server:9090
       SERVER_ADDRESS: 0.0.0.0
     ports:
       - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - qm-network
 
