@@ -42,7 +42,12 @@ services:
     restart: always
     ports:
       - "8761:8761"
-    # Port 8761 is internal only
+    environment:
+      JAVA_OPTS: "-Xmx256m -Xms256m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -60,7 +65,11 @@ services:
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SERVER_ADDRESS: 0.0.0.0
-    # Port 9090 is internal only
+      JAVA_OPTS: "-Xmx384m -Xms384m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -78,8 +87,14 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false
       SERVER_ADDRESS: 0.0.0.0
+      JAVA_OPTS: "-Xmx384m -Xms384m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -96,8 +111,14 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false
       SERVER_ADDRESS: 0.0.0.0
+      JAVA_OPTS: "-Xmx384m -Xms384m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -116,9 +137,15 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?useSSL=false
       SPRING_REDIS_HOST: redis
       SERVER_ADDRESS: 0.0.0.0
+      JAVA_OPTS: "-Xmx384m -Xms384m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 
@@ -134,7 +161,13 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SERVER_ADDRESS: 0.0.0.0
+      JAVA_OPTS: "-Xmx384m -Xms384m"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - qm-network
 

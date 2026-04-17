@@ -57,32 +57,38 @@ spring:
                   filters:
                       - RewritePath=/api/convert/(?<segment>.*), /api/user/quantities/convert/${segment}
 
-                - id: swagger-ui-html-route
-                  uri: http://localhost:8080
+                - id: auth-docs
+                  uri: lb://auth-service
                   predicates:
-                      - Path=/swagger-ui.html
+                    - Path=/v3/api-docs/auth-service
+                  filters:
+                    - RewritePath=/v3/api-docs/auth-service, /v3/api-docs
 
-                - id: swagger-ui-resources-route
-                  uri: http://localhost:8080
+                - id: user-docs
+                  uri: lb://user-service
                   predicates:
-                      - Path=/swagger-ui/**
+                    - Path=/v3/api-docs/user-service
+                  filters:
+                    - RewritePath=/v3/api-docs/user-service, /v3/api-docs
 
-                - id: api-docs-route
-                  uri: http://localhost:8080
+                - id: measurement-docs
+                  uri: lb://measurement-service
                   predicates:
-                      - Path=/v3/api-docs/**
+                    - Path=/v3/api-docs/measurement-service
+                  filters:
+                    - RewritePath=/v3/api-docs/measurement-service, /v3/api-docs
 
                 - id: oauth2-route
                   uri: lb://auth-service
                   predicates:
-                      - Path=/oauth2/**,/login/oauth2/**
+                    - Path=/oauth2/**,/login/oauth2/**
 
                 - id: history-alias-route
                   uri: lb://measurement-service
                   predicates:
-                      - Path=/api/user/history/**
+                    - Path=/api/user/history/**
                   filters:
-                      - RewritePath=/api/user/history/(?<segment>.*), /api/user/quantities/history/${segment}
+                    - RewritePath=/api/user/history/(?<segment>.*), /api/user/quantities/history/${segment}
 
         loadbalancer:
             retry:
@@ -91,7 +97,7 @@ spring:
     boot:
         admin:
             client:
-                url: http://localhost:9090
+                url: http://admin-server:9090
                 instance:
                     prefer-ip: true
                 username: admin
@@ -100,7 +106,7 @@ spring:
 eureka:
     client:
         service-url:
-            defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+            defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
         fetch-registry: true
         register-with-eureka: true
         healthcheck:
@@ -129,6 +135,15 @@ management:
 springdoc:
     swagger-ui:
         path: /swagger-ui.html
+        urls:
+            - name: api-gateway
+              url: /v3/api-docs
+            - name: auth-service
+              url: /v3/api-docs/auth-service
+            - name: user-service
+              url: /v3/api-docs/user-service
+            - name: measurement-service
+              url: /v3/api-docs/measurement-service
     api-docs:
         path: /v3/api-docs
     show-actuator: true
