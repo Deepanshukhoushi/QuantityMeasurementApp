@@ -1,5 +1,5 @@
-# Stage 1: Build Angular Frontend
-FROM node:18-alpine AS build-stage
+FROM node:22-alpine AS build-stage
+
 WORKDIR /app
 COPY QMA-UI/package*.json ./
 RUN npm install
