@@ -1056,33 +1056,52 @@ docker run -d -p 8080:8080 <dockerhub-username>/qm-api-gateway:latest
 
 ---
 
-## ?? Production Deployment (EC2 + Docker)
+## 🚀 Deployment (EC2 + Docker Compose)
 
-To deploy the Quantity Measurement App in a production environment (such as AWS EC2 using Docker), ensure the following environment variables are correctly configured in your container environment or .env file. 
+The application is configured to run fully containerized on a single EC2 instance using Docker Compose and Nginx as a reverse proxy.
 
-### Core Configuration
-- **SPRING_PROFILES_ACTIVE**: Set to prod to enable production configurations and startup validation.
-- **SERVER_PORT**: The port the service will listen on (default: 8080 for API Gateway, 8083 for Auth).
+### Setup Steps on EC2
 
-### Security & CORS
-- **APP_OAUTH2_REDIRECT_URI**: The authorized redirect URI for Google OAuth2 (e.g., https://quantitymeasurementapp-frontend-iibq.onrender.com/oauth2/redirect). **Mandatory in production.**
-- **APP_CORS_ALLOWED_ORIGINS**: Comma-separated list of allowed origins (e.g., https://quantitymeasurementapp-frontend-iibq.onrender.com). **Mandatory in production.**
-- **APP_AUTH_TOKEN_SECRET**: A secure, long string (at least 32 bytes) used to sign JWT tokens.
+1. **Install Docker & Docker Compose:**
+   ```bash
+   sudo yum update -y
+   sudo yum install docker -y
+   sudo service docker start
+   sudo usermod -aG docker ec2-user
+   # Install Docker Compose
+   sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   sudo chmod +x /usr/local/bin/docker-compose
+   ```
 
-### Database & Persistence
-- **DB_URL**: The JDBC connection string for your production MySQL database (e.g., jdbc:mysql://db-instance-address:3306/quantity_db).
-- **DB_USERNAME**: Production database username.
-- **DB_PASSWORD**: Production database password.
-- **REDIS_HOST**: Hostname of your Redis instance for token blacklisting.
-- **REDIS_PORT**: Port of your Redis instance (default: 6379).
+2. **Clone the repository and move to root:**
+   ```bash
+   git clone <your-repo-url>
+   cd Quantity-Measurement-App
+   ```
 
-### Service Discovery & Integration
-- **EUREKA_SERVER_URL**: The URL of your Eureka Discovery Server (e.g., http://eureka-server:8761/eureka/).
-- **GOOGLE_CLIENT_ID**: Your Google Cloud Console OAuth2 Client ID.
-- **GOOGLE_CLIENT_SECRET**: Your Google Cloud Console OAuth2 Client Secret.
-- **MAIL_USERNAME**: SMTP username for email services (Reset Password).
-- **MAIL_PASSWORD**: SMTP password or App Password.
+3. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and set EC2_PUBLIC_IP=56.228.52.104
+   nano .env
+   ```
 
-### Startup Validation
-Each service performs a **Startup Validation** check in the prod profile. The application will **fail to start** if the APP_OAUTH2_REDIRECT_URI or APP_CORS_ALLOWED_ORIGINS are missing or set to localhost values.
+4. **Build and Run:**
+   ```bash
+   docker-compose up --build -d
+   ```
+
+5. **Open Security Group Ports:**
+   - 80 (HTTP)
+   - 22 (SSH)
+
+### Production Configuration Details
+
+- **EC2_PUBLIC_IP**: 56.228.52.104
+- **APP_OAUTH2_REDIRECT_URI**: `http://56.228.52.104/oauth2/redirect`
+- **APP_CORS_ALLOWED_ORIGINS**: `http://56.228.52.104`
+
+### HTTPS Preparation (Optional)
+To enable HTTPS, you must have a domain name. Use Certbot to generate certificates and update the Nginx configuration in `nginx/default.conf`.
+
 
