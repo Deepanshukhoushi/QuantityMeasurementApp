@@ -88,7 +88,7 @@ services:
       - .env
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       SERVER_ADDRESS: 0.0.0.0
       JAVA_OPTS: "-Xmx384m -Xms384m"
     deploy:
@@ -112,7 +112,7 @@ services:
       - .env
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       SERVER_ADDRESS: 0.0.0.0
       JAVA_OPTS: "-Xmx384m -Xms384m"
     deploy:
@@ -138,7 +138,7 @@ services:
       - .env
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?useSSL=false
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/quantitymeasurement_db?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_REDIS_HOST: redis
       SERVER_ADDRESS: 0.0.0.0
       JAVA_OPTS: "-Xmx384m -Xms384m"
