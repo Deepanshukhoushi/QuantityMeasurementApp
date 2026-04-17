@@ -40,6 +40,8 @@ services:
       context: ./eureka-server
     container_name: qm-eureka-server
     restart: always
+    ports:
+      - "8761:8761"
     # Port 8761 is internal only
     networks:
       - qm-network
@@ -53,6 +55,8 @@ services:
     depends_on:
       eureka-server:
         condition: service_started
+    ports:
+      - "9090:9090"
     environment:
       EUREKA_SERVER_URL: http://eureka-server:8761/eureka/
       SERVER_ADDRESS: 0.0.0.0
